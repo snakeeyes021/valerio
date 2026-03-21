@@ -49,9 +49,14 @@ Then run:
 *   **The `mscoree.dll` issue:** Since this is a core .NET file, we suspect that `.NET 4.8` (installed via the Bottles UI) might not be overriding properly. We are considering nuking the bottle and testing the installation of `dotnet48` via **Winetricks** instead to see if it fixes the extraction crash. We haven't actually tested this yet.
 
 ## To-Do List (Tech Debt)
+*   **Desktop Shortcut Cleanup (UX/UI):** Distrobox auto-exported `.desktop` files with proper icons, conflicting with our custom manual ones. We need to use the current "messy" state of this machine as a diagnostic baseline to determine exactly which `.desktop` file holds the "Nice Icon" vs the "Functional Link Handler" so we can merge them properly, while suppressing the export of unnecessary background Steinberg utilities.
+*   **High-DPI / 4K Scaling:** Wine isn't scaling automatically on 4K screens. We need to investigate Wine DPI registry keys or a dynamic DPI switcher alias.
+*   **VSTAudioEngine6.exe Crash:** The audio engine crashes cleanly upon closing Dorico. Need to investigate if this is a Pipewire/ASIO routing issue or a Wine teardown bug.
+*   **Install NotePerformer:** Add the NotePerformer installation to the standard reproducible deployment script.
+*   **Visual Glitches / GE-Proton Experiment:** The current `zhiyi/wine` build has transparent text in SDA and font ugliness. We should create an experimental Git branch to try patching `dcomp` directly onto an *optimal* version of GE-Proton (Current/RC/Matching) to see if we get the best of both worlds.
+*   **GNOME / Adwaita Theming:** Investigate applying a Windows `.msstyles` theme (or Wine theming equivalent) to make Wine scrollbars and menus match GNOME/Adwaita natively. (KDE users could get Breeze or default).
 *   **Automate Wine-ICU Installation:** Wine 9.x+ prompts for a `wine-icu` package. We need to add the silent download and installation of the `wine-icu` MSI to our container build script so the user isn't prompted.
 *   **Version Manifest Generation:** Once a working state is confirmed, programmatically extract and record the exact version numbers of every piece of installed Steinberg software (SDA, MediaBay, Dorico, HALion, etc.) to create a fully reproducible manifest.
-*   **Desktop Shortcut Cleanup (UX/UI):** Hide the technical "SDA Handler" .desktop file from the app drawer, make sure the main "SDA" app shortcut correctly handles both launching and capturing the login URL without forcing the user to choose, and clean up duplicate icons.
 *   **SAM Link Handler:** Once Dorico is installed, replicate the SDA token-catching bash script for the Steinberg Activation Manager (`net-steinberg-sam://`).
 *   **"License Eater" Bug:** Figure out a backup strategy (e.g., copying the prefix). Bottles stopping/restarting processes causes the virtual hardware fingerprint to change, making SAM invalidate the license.
 *   **Mono Audio Bug:** Dorico currently outputs sound only to one channel. Needs routing/Pipewire fixes.

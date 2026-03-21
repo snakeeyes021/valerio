@@ -1,0 +1,2 @@
+#!/bin/bash
+distrobox enter dorico-box -- bash -c "export WINEPREFIX=\"\$HOME/dev/steinberg-on-linux/dorico-prefix\"; export PATH=\"/opt/wine-custom/bin:\$PATH\"; cd \"\$HOME/dev/steinberg-on-linux/dorico-prefix/drive_c/Program Files/Steinberg/Dorico6\"; wine 'Dorico6.exe'"
