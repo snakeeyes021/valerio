@@ -1,0 +1,24 @@
+# Wine and Build Artifacts
+wine-build/
+wine32/
+wine64/
+rebuild_icu.log
+rebuild_wine_icu.sh
+build_wine.log
+setup_prefix.log
+
+# Wine Prefix (Crucial: This is huge and user-specific)
+dorico-prefix/
+
+# Extracted Installers
+MediaBay_extracted/
+
+# Large Binary Installers (already in initial commit, but good to ignore future ones)
+*.exe
+*.zip
+*.msi
+
+# Temp files
+.DS_Store
+*.tmp
+*.bak

@@ -49,6 +49,9 @@ Then run:
 *   **The `mscoree.dll` issue:** Since this is a core .NET file, we suspect that `.NET 4.8` (installed via the Bottles UI) might not be overriding properly. We are considering nuking the bottle and testing the installation of `dotnet48` via **Winetricks** instead to see if it fixes the extraction crash. We haven't actually tested this yet.
 
 ## To-Do List (Tech Debt)
+*   **Automate Wine-ICU Installation:** Wine 9.x+ prompts for a `wine-icu` package. We need to add the silent download and installation of the `wine-icu` MSI to our container build script so the user isn't prompted.
+*   **Version Manifest Generation:** Once a working state is confirmed, programmatically extract and record the exact version numbers of every piece of installed Steinberg software (SDA, MediaBay, Dorico, HALion, etc.) to create a fully reproducible manifest.
+*   **Desktop Shortcut Cleanup (UX/UI):** Hide the technical "SDA Handler" .desktop file from the app drawer, make sure the main "SDA" app shortcut correctly handles both launching and capturing the login URL without forcing the user to choose, and clean up duplicate icons.
 *   **SAM Link Handler:** Once Dorico is installed, replicate the SDA token-catching bash script for the Steinberg Activation Manager (`net-steinberg-sam://`).
 *   **"License Eater" Bug:** Figure out a backup strategy (e.g., copying the prefix). Bottles stopping/restarting processes causes the virtual hardware fingerprint to change, making SAM invalidate the license.
 *   **Mono Audio Bug:** Dorico currently outputs sound only to one channel. Needs routing/Pipewire fixes.
@@ -63,3 +66,8 @@ A user on the forums recently managed to get **Dorico 6** fully working.
     *   Install the Steinberg suite inside the container.
     *   Export the app shortcut to the host desktop (`distrobox-export --app`).
     *   *Benefit:* This gives near-native performance, direct access to the host's Pipewire (essential for low latency), and avoids Flatpak sandboxing issues.
+
+## Reproducibility Artifacts (jgke Container Method)
+To ensure we can always rebuild this exact working state, we have locked in the following hashes from our initial successful build:
+*   **Custom Wine Repository (`zhiyi/wine`):** Branch `bug-23698-react-native-20251217` checked out at commit `ae88a705b5aa544cc60153d48c1ca8849f32ee14`.
+*   **Winetricks:** Version `20260125-next` (SHA256: `8f07319f32e96a7ad92f786bf8ee2e00d3c65f82debd33b6884e681b825ae67a`).
