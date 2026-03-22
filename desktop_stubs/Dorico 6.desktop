@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Dorico 6
+Comment=Music Notation Software
+Exec=bash -c '"$HOME/.local/bin/dorico.sh"'
+Type=Application
+Terminal=false
+Categories=AudioVideo;Audio;

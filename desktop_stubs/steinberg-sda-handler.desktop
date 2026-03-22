@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Steinberg SDA Handler
+Exec=bash -c '"$HOME/.local/bin/steinberg-sda-handler.sh" "%u"'
+Type=Application
+Terminal=false
+MimeType=x-scheme-handler/net-steinberg-sda;
