@@ -11,7 +11,8 @@ Our goal is to solve these technical challenges and create a **reproducible, aut
 *(Note: The installer framework is currently under development. These are the planned requirements.)*
 *   A Linux distribution running **Distrobox** (or Distroshelf).
 *   A container engine (**Docker** or **Podman**).
-*   Your own downloaded Steinberg Windows installers (`.exe` / `.zip`).
+*   Your own downloaded Steinberg Windows installers (`.exe` / `.zip`). 
+    *   **Note:** Currently, all that is necessary is the Steinberg Download Assistant and Steinberg MediaBay; the Download Assistant installs the rest. (optional: Noteperformer)
 
 ## Installation
 *(Coming Soon)*
