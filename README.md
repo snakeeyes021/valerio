@@ -7,39 +7,34 @@ Steinberg software has historically been difficult to run on Linux due largely t
 
 Our goal is to solve these technical challenges and create a **reproducible, automated, and user-friendly** deployment system.
 
-## Philosophy & Architectural Aims
-2. **Reproducibility:** The environment must be entirely scriptable. A developer should be able to run a single command to compile the engine, fetch dependencies, and generate the working state from scratch.
-3. **The "Plug-and-Play" End Goal:** Whether through automated installers or a pre-configured image, the ultimate goal is a zero-friction experience for the end-user. 
+## Prerequisites (End Users)
+*(Note: The installer framework is currently under development. These are the planned requirements.)*
+*   A Linux distribution running **Distrobox** (or Distroshelf).
+*   A container engine (**Docker** or **Podman**).
+*   Your own downloaded Steinberg Windows installers (`.exe` / `.zip`).
 
-## Current Architecture: The Container Method
-We're currently using a **Containerized approach using Distrobox and Docker**.  
+## Installation
+*(Coming Soon)*
+A single-command bootstrapper will be provided here to automatically build your isolated Steinberg environment.
 
-*   **The Engine:** We compile a custom branch of Wine (`zhiyi/wine`) that includes experimental `dcomp` stubs required by Dorico 6. In the future, we may attempt to merge some GE patches, which we believe do fix some issues with the current working state.
-*   **The Environment:** Distrobox allows us to run an Ubuntu container that shares the host's display, DBus, audio, and home directory. Developing inside this container means we can set up whatever environment is necessary to get the software running without polluting the host system or having to deal with packaging during the development process.
-*   **The Handoff:** We use custom `.desktop` URI handlers to seamlessly pass login tokens from the host's native Linux web browser directly into the containerized Steinberg Download Assistant and Steinberg Activation Manager. 
+---
 
-## Delivery Mechanisms & The Future
-Currently, we are building the "recipe" inside a Docker container. Depending on licensing and legal constraints from Steinberg, this recipe can be distributed in several ways:
+## For Developers & Contributors
+If you are looking to understand how this system works, contribute to the scripts, or read the historical design decisions, please refer to the `docs/` directory:
 
-1. **The "Bring Your Own Installer" Bootstrapper (Most Likely):** If we cannot distribute pre-packaged Steinberg software, we will provide a single "one-click" terminal command (e.g., `curl -sL ... | bash`) in this README. This command will download our installation framework, verify the user has Distrobox installed, generate the container, and present a wizard that automatically processes the user's downloaded `.exe` installers.
-2. **The "Template Prefix" Docker Image:** We can distribute a Docker image containing the compiled Wine engine and a pre-installed Dorico prefix. A first-run wrapper script copies this "Template Prefix" to the user's local home folder and updates the registry, providing a true one-click install without extra packaging layers.
-3. **AppImage / Flatpak:** If legally permitted, the engine and binaries can be packed into a single, executable AppImage or Flatpak manifest.
+*   **[Architecture & Blueprint](docs/ARCHITECTURE.md):** The core technical design (Containers, Custom Wine, URI Handoffs).
+*   **[Release Manifests](docs/RELEASES.md):** The verifiable combinations of Wine versions and Steinberg app versions.
+*   **[Project Backlog](docs/backlog.md):** Current tasks and active sprint items.
+*   **[AI Agent Guide](docs/AGENTS.md):** Rules and constraints for LLMs assisting with this repository.
 
-## Repository Structure & Documentation
+### Repository Structure
 ```text
 steinberg-on-linux/
-├── README.md                 # Master introducer doc (You are here)
-├── .gitignore                # Prevents massive prefixes/binaries from being tracked
+├── README.md                 
 ├── desktop_stubs/            # URI handlers and .desktop templates for the host
-├── docs/
-│   ├── AGENTS.md                         # AI Development Guide and system constraints
-│   ├── ARCHITECTURE.md                   # Active blueprint, roadmap, and To-Do list
-│   ├── archive_bottles_flatpak_method.md # Historical record of the Bottles sandbox attempt
-│   ├── BACKLOG.md                        # Granular, nitty-gritty implementation subtasks
-│   ├── RELEASES.md                       # Manifest of verified build artifacts and software versions
-│   └── shared_conversation.md            # The original LLM brainstorming context
+├── docs/                     # Architectural, task, and release documentation
 └── scripts/
-    ├── 1-build/              # Scripts to compile custom Wine and its dependencies
-    ├── 2-install/            # Scripts to bootstrap the prefix and install software
-    └── 3-runtime_handlers/   # Wrappers to launch the apps and handle URI web-login handoffs
+    ├── 1-build/              # Compiles the custom Wine engine
+    ├── 2-install/            # Bootstraps the prefix and installs software
+    └── 3-runtime_handlers/   # Wrappers to launch the apps and handle web-logins
 ```
