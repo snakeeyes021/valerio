@@ -25,7 +25,7 @@ If you are looking to understand how this system works, contribute to the script
 
 *   **[Architecture & Blueprint](docs/ARCHITECTURE.md):** The core technical design (Containers, Custom Wine, URI Handoffs).
 *   **[Release Manifests](docs/RELEASES.md):** The verifiable combinations of Wine versions and Steinberg app versions.
-*   **[Project Backlog](docs/backlog.md):** Current tasks and active sprint items.
+*   **[Project Backlog](docs/BACKLOG.md):** Current tasks and active sprint items.
 *   **[AI Agent Guide](docs/AGENTS.md):** Rules and constraints for LLMs assisting with this repository.
 
 ### Repository Structure
