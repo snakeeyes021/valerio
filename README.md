@@ -34,8 +34,9 @@ steinberg-on-linux/
 ├── docs/
 │   ├── AGENTS.md                         # AI Development Guide and system constraints
 │   ├── ARCHITECTURE.md                   # Active blueprint, roadmap, and To-Do list
-│   ├── backlog.md                        # Granular, nitty-gritty implementation subtasks
 │   ├── archive_bottles_flatpak_method.md # Historical record of the Bottles sandbox attempt
+│   ├── BACKLOG.md                        # Granular, nitty-gritty implementation subtasks
+│   ├── RELEASES.md                       # Manifest of verified build artifacts and software versions
 │   └── shared_conversation.md            # The original LLM brainstorming context
 └── scripts/
     ├── 1-build/              # Scripts to compile custom Wine and its dependencies
