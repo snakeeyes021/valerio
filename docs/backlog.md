@@ -22,8 +22,19 @@ We currently have `install_noteperformer.sh`, but we lack dedicated automation s
 ## Epic: UX/UI Desktop Integration
 **Context:** Distrobox auto-exports `.desktop` files with icons, but we need our custom `.desktop` files to handle the `net-steinberg-sam://` URI schemes. 
 
-### Subtasks: `.desktop` File Merging
+### Subtasks: .desktop File Merging
 *   [ ] The stubs in `desktop_stubs/` currently lack `Icon=` paths. 
 *   [ ] Need a post-install script that runs `distrobox-export --app` for SDA, SAM, and Dorico.
 *   [ ] Extract the generated `Icon=` lines from the Distrobox-exported files located in the host's `~/.local/share/applications/`.
 *   [ ] Inject those Icon paths into our custom URI-handler stubs and overwrite the Distrobox ones, ensuring the user gets one clean icon that launches the app *and* handles the login links.
+
+## Epic: Engine Dependency Automation (libicu)
+**Context:** Wine requires native ICU support for core Unicode translation, and Steinberg apps require Windows-side ICU binaries within the prefix.
+*   [ ] **Native Dependencies:** Add `libicu-dev` and `libicu-dev:i386` to the `apt-get install` list in `scripts/1-build/build_wine.sh`.
+*   [ ] **Prefix Dependencies:** Add the silent download and installation of `wine-icu-72.1-x86.msi` and `wine-icu-72.1-x86_64.msi` to `scripts/2-install/setup_prefix.sh`.
+*   [ ] **Cleanup:** Delete `scripts/1-build/TO_BE_DELETED_rebuild_wine_icu.sh` once the above are verified working in a fresh build.
+
+## Epic: Documentation & Repository Polish
+**Context:** Prepare the repository for public consumption and preserve AI agent context.
+*   [ ] **Update Main README:** Refactor `README.md` to be strictly user-facing (What is it, prerequisites, installation). Move developer/architectural deep-dives to `docs/ARCHITECTURE.md`.
+*   [ ] **Add Standard Open Source Docs:** Create `CONTRIBUTING.md` and `LICENSE` files.

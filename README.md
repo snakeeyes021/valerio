@@ -32,7 +32,8 @@ steinberg-on-linux/
 ├── .gitignore                # Prevents massive prefixes/binaries from being tracked
 ├── desktop_stubs/            # URI handlers and .desktop templates for the host
 ├── docs/
-│   ├── dorico_linux_state.md             # Active blueprint, roadmap, and To-Do list
+│   ├── AGENTS.md                         # AI Development Guide and system constraints
+│   ├── ARCHITECTURE.md                   # Active blueprint, roadmap, and To-Do list
 │   ├── backlog.md                        # Granular, nitty-gritty implementation subtasks
 │   ├── archive_bottles_flatpak_method.md # Historical record of the Bottles sandbox attempt
 │   └── shared_conversation.md            # The original LLM brainstorming context
