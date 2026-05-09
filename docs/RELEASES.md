@@ -8,7 +8,7 @@ This document tracks known-good, tested "snapshots" of the entire system. It ser
 **Date:** 2026-05-09
 **Status:** Alpha / Work-in-Progress
 
-**Description:** Validated minor update of Dorico (6.2.20.6183) installed via the existing SDA installation. Includes testing of 3rd party playback templates (Cantai).
+**Description:** Validated minor update of Dorico (6.2.20.6183) installed via the existing SDA installation. Includes partial testing of 3rd-party VST (Cantai).
 
 **Build Environment Artifacts:**
 *   **Custom Wine Source (`zhiyi/wine`):** Commit `ae88a705b5aa544cc60153d48c1ca8849f32ee14`
@@ -21,11 +21,11 @@ This document tracks known-good, tested "snapshots" of the entire system. It ser
 *   **Steinberg Media Bay:** `1.3.60`
 *   **Dorico:** `6.2.20.6183` (AudioEngine version `6.1.0.13`)
 *   **NotePerformer (3rd Party):** `5.1.2`
-*   **Cantai (3rd Party):** Experimental (Installed, but activation pending)
+*   **Cantai (3rd Party):** `2.2.0` PARTIAL (see note below)
 
 **Known Issues (in this environment):**
 *   **New:** SDA attempts to update MediaBay automatically and fails.
-*   **New:** Cantai 3rd Party VST testing is inconclusive. While it installs and the playback template loads, license activation requires opening the VST window, which currently crashes Dorico in this build.
+*   **New:** 3rd-party Cantai VST testing is inconclusive. While it installs and the playback template loads and seems to load the correct amount of instances, license activation requires opening the VST window, which currently crashes Dorico in this build (and all previous builds).
 *   Visual glitches (transparent text) in SDA.
 *   `VSTAudioEngine6.exe` crashes cleanly upon closing Dorico.
 *   Wine DPI scaling may need to be manually set on any given display, e.g. high-resolution (4K) displays.
