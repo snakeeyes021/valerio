@@ -8,6 +8,14 @@ It serves two purposes:
 
 ---
 
+## ⚠️ A Note on Reproducibility & Versions
+
+Steinberg software and Wine are both moving targets. To ensure a successful build, **it is recommend that you use the specific versions of software and commit hashes that have been validated together.**
+
+Before starting, please consult **[docs/RELEASES.md](RELEASES.md)**. Throughout this playbook, we provide "Known-Good" examples based on the latest alpha release, but you should always check the manifest if you encounter issues.
+
+---
+
 ## Phase 1: Host Preparation
 
 1. **Install Distrobox and a Container Engine.**
@@ -50,13 +58,15 @@ We must compile a custom branch of Wine that includes experimental `dcomp` stubs
        libsdl2-dev:i386 libsdl2-dev libudev-dev:i386 libudev-dev \
        libicu-dev:i386 libicu-dev
    ```
-3. **Clone the Custom Source:**
+3. **Clone the Custom Source & Checkout Validated Commit:**
    ```bash
    mkdir -p ~/dev/steinberg-on-linux/wine-build
    cd ~/dev/steinberg-on-linux/wine-build
    git clone https://gitlab.winehq.org/zhiyi/wine wine-source
    cd wine-source
-   git checkout bug-23698-react-native-20251217
+   # Refer to RELEASES.md for the specific commit hash. 
+   # Example (v0.1.1-alpha):
+   git checkout ae88a705b5aa544cc60153d48c1ca8849f32ee14
    ```
 4. **Compile and Install (Locally):**
    ```bash
@@ -105,8 +115,9 @@ We must create an isolated Windows 10 environment for the Steinberg software.
    ./winetricks -q d3dx9 msls31 allfonts d3dcompiler_43 d3dcompiler_47 vcrun2019 dotnet48 win10
    ```
 3. **Manually Install Wine-ICU MSIs:**
-   *(Do not let Wine try to automatically download these, it will fail).*
+   *(Do not let Wine try to automatically download these, it will fail. Ensure the version matches what is listed in RELEASES.md).*
    ```bash
+   # Example (v0.1.1-alpha):
    wget https://dl.winehq.org/wine/wine-icu/72.1/wine-icu-72.1-x86.msi
    wget https://dl.winehq.org/wine/wine-icu/72.1/wine-icu-72.1-x86_64.msi
    wine msiexec /i wine-icu-72.1-x86.msi
@@ -117,14 +128,15 @@ We must create an isolated Windows 10 environment for the Steinberg software.
 
 ## Phase 4: Software Installation
 
-You must provide your own Steinberg installer files.
+You must provide your own Steinberg installer files. **Check RELEASES.md to ensure your installer versions match the environment's verified state.**
 
 1. **Install MediaBay:**
    * Assuming you downloaded `MediaBay_Installer_win64.zip` to `~/dev/steinberg-on-linux`.
    ```bash
    cd ~/dev/steinberg-on-linux
    unzip -o MediaBay_Installer_win64.zip -d MediaBay_extracted
-   # CRITICAL: Delete the preinstall script, it breaks the installer
+   # CRITICAL: Delete the preinstall script, it breaks the installer.
+   # Note: The folder name inside the zip may change with versions.
    rm -f "MediaBay_extracted/MediaBay 1.3.60/Additional Content/Installer Data/preinstall.ps1"
    cd "MediaBay_extracted/MediaBay 1.3.60"
    wine Setup.exe
@@ -133,11 +145,13 @@ You must provide your own Steinberg installer files.
    * Run the `.exe` you downloaded.
    ```bash
    cd ~/dev/steinberg-on-linux
+   # Example version:
    wine Steinberg_Download_Assistant_1.39.3_Installer_win.exe
    ```
 3. **Install NotePerformer (Optional):**
    * Run the `.exe` you downloaded.
    ```bash
+   # Example version:
    wine NotePerformer_5.1.2_Installer.exe
    ```
 
