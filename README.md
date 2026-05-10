@@ -1,7 +1,8 @@
-# Valerio (Steinberg Dorico on Linux)
+# Valerio 
+A unified installer for Steinberg Dorico on Linux
 
 ## The Mission
-This project aims to bring Steinberg Dorico to Linux with near-native performance and stability. 
+This project aims to bring Steinberg Dorico to Linux via WINE, which often provides near-native performance and stability. 
 
 Steinberg software has historically been difficult to run on Linux due largely to installer compatibility, account logins and token handoffs, and a small handful of other related technical hurdles. That is to say, the software itself generally runs decently well... if you can get that far.
 
@@ -9,7 +10,7 @@ Our goal is to solve these technical challenges and create a **reproducible, aut
 
 ## Prerequisites (End Users)
 *(Note: The installer framework is currently under development. These are the planned requirements.)*
-*   A Linux distribution running **Distrobox** (or Distroshelf).
+*   A Linux distribution running **Distrobox** (and/or Distroshelf).
 *   A container engine (**Docker** or **Podman**).
 *   Your own downloaded Steinberg Windows installers (`.exe` / `.zip`). 
     *   **Note:** Currently, all that is necessary is the Steinberg Download Assistant and Steinberg MediaBay; the Download Assistant installs the rest. (optional: Noteperformer)
@@ -18,7 +19,7 @@ Our goal is to solve these technical challenges and create a **reproducible, aut
 
 A single-command automated bootstrapper is currently in development. 
 
-In the meantime, adventurous users can follow the **[Manual Deployment Playbook](docs/PLAYBOOK.md)** for a step-by-step guide to building the environment.
+In the meantime, the intrepid among us can follow the **[Manual Deployment Playbook](docs/PLAYBOOK.md)** for a step-by-step guide to building the environment.
 
 ---
 
