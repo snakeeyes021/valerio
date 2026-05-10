@@ -9,30 +9,34 @@ SEARCH_DIRS=("$VALERIO_INSTALLERS_DIR" "$HOME/Downloads" "$(pwd)")
 FOUND_INSTALLER=""
 
 # 1. Search Phase
+echo "Searching for Steinberg Download Assistant installer..."
 for DIR in "${SEARCH_DIRS[@]}"; do
-    # Skip if the directory doesn't exist
     if [ ! -d "$DIR" ]; then
         continue
     fi
     
-    # Look for the Cantai installer in this directory
-    MATCH=$(find "$DIR" -maxdepth 1 -name "Cantai-Windows-Dorico-Installer-*.exe" | head -n 1)
+    # Use a glob pattern to handle different version numbers in the filename
+    MATCH=$(find "$DIR" -maxdepth 1 -name "Steinberg_Download_Assistant_*_Installer_win.exe" | head -n 1)
     
     if [ -n "$MATCH" ]; then
         FOUND_INSTALLER="$MATCH"
-        echo "Found Cantai installer: $FOUND_INSTALLER"
+        echo "Found SDA installer: $FOUND_INSTALLER"
         break
     fi
 done
 
 # 2. Download / Fallback Phase
 if [ -z "$FOUND_INSTALLER" ]; then
-    echo "Error: Cantai installer not found locally."
-    echo "Please download the installer and place it in $VALERIO_INSTALLERS_DIR, ~/Downloads, or run this script from the directory containing it."
-    
+    echo "Error: Steinberg Download Assistant installer not found."
+    echo "Please download the Windows installer from Steinberg's website and place it in:"
+    echo "  - $VALERIO_INSTALLERS_DIR"
+    echo "  - ~/Downloads"
+    echo ""
+    echo "Filename should match: Steinberg_Download_Assistant_*_Installer_win.exe"
     exit 1
 fi
 
 # 3. Execution Phase
 # Passing the guaranteed absolute path ($FOUND_INSTALLER) to Wine inside the Distrobox container.
+echo "Launching SDA installer in the container..."
 distrobox enter "$VALERIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$VALERIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; wine \"$FOUND_INSTALLER\""

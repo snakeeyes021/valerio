@@ -1,4 +1,4 @@
-# Wine and Build Artifacts
+# Wine and Build Artifacts (Legacy)
 wine-build/
 wine32/
 wine64/
@@ -7,11 +7,14 @@ rebuild_wine_icu.sh
 build_wine.log
 setup_prefix.log
 
-# Wine Prefix
+# Legacy Wine Prefix
 dorico-prefix/
 
-# Extracted Installers
+# Extracted Installers (Legacy)
 MediaBay_extracted/
+
+# Local data and installers directory
+installers/
 
 # Large Binary Installers
 *.exe

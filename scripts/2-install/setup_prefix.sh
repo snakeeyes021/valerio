@@ -1,20 +1,59 @@
 #!/bin/bash
 set -e
 
-export WINEPREFIX="$HOME/dev/steinberg-on-linux/dorico-prefix"
-export WINE="/opt/wine-custom/bin/wine"
-export WINESERVER="/opt/wine-custom/bin/wineserver"
-export PATH="/opt/wine-custom/bin:$PATH"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../common.sh"
 
-echo "Initializing Wine prefix..."
+export WINEPREFIX="$VALERIO_PREFIX_DIR"
+export WINE="$WINE_CUSTOM_BIN/wine"
+export WINESERVER="$WINE_CUSTOM_BIN/wineserver"
+export PATH="$WINE_CUSTOM_BIN:$PATH"
+
+# Suppress Wine Mono and Gecko installer prompts
+export WINEDLLOVERRIDES="mscoree=d;mshtml=d"
+
+echo "Initializing Wine prefix at $WINEPREFIX..."
 wineboot -u
 
 echo "Installing winetricks dependencies (this may pop up some windows, please click through them if needed)..."
 winetricks -q d3dx9 msls31 allfonts d3dcompiler_43 d3dcompiler_47 vcrun2019 dotnet48 win10
 
-echo "Extracting MediaBay..."
-cd "$HOME/dev/steinberg-on-linux"
-unzip -o MediaBay_Installer_win64.zip -d MediaBay_extracted
-rm -f "MediaBay_extracted/MediaBay 1.3.60/Additional Content/Installer Data/preinstall.ps1"
+echo "Downloading and installing wine-icu (required for Dorico)..."
+ICU_VERSION="72.1"
+ICU_X86_URL="https://gitlab.winehq.org/api/v4/projects/2302/packages/generic/wine-icu/$ICU_VERSION/wine-icu-$ICU_VERSION-x86.msi"
+ICU_X64_URL="https://gitlab.winehq.org/api/v4/projects/2302/packages/generic/wine-icu/$ICU_VERSION/wine-icu-$ICU_VERSION-x86_64.msi"
 
-echo "Done with winetricks and MediaBay extraction!"
+mkdir -p "$VALERIO_CACHE_DIR/icu"
+wget -q --show-progress "$ICU_X86_URL" -O "$VALERIO_CACHE_DIR/icu/wine-icu-x86.msi"
+wget -q --show-progress "$ICU_X64_URL" -O "$VALERIO_CACHE_DIR/icu/wine-icu-x64.msi"
+
+echo "Installing ICU x86..."
+wine msiexec /i "$VALERIO_CACHE_DIR/icu/wine-icu-x86.msi" /qn
+echo "Installing ICU x64..."
+wine msiexec /i "$VALERIO_CACHE_DIR/icu/wine-icu-x64.msi" /qn
+
+echo "Extracting MediaBay..."
+# Search locations for the zip
+SEARCH_DIRS=("$VALERIO_INSTALLERS_DIR" "$HOME/Downloads" "$(pwd)")
+FOUND_ZIP=""
+
+for DIR in "${SEARCH_DIRS[@]}"; do
+    if [ -f "$DIR/MediaBay_Installer_win64.zip" ]; then
+        FOUND_ZIP="$DIR/MediaBay_Installer_win64.zip"
+        break
+    fi
+done
+
+if [ -n "$FOUND_ZIP" ]; then
+    echo "Found MediaBay installer: $FOUND_ZIP"
+    unzip -o "$FOUND_ZIP" -d "$VALERIO_DATA_DIR/MediaBay_extracted"
+    # Find and remove any preinstall.ps1 scripts recursively within the extracted folder
+    # These often cause "Not Trusted" errors during installation
+    find "$VALERIO_DATA_DIR/MediaBay_extracted" -name "preinstall.ps1" -delete
+    echo "Removed preinstall.ps1 script(s) to prevent installation failures."
+else
+    echo "Warning: MediaBay_Installer_win64.zip not found in search locations."
+    echo "Please place it in $VALERIO_INSTALLERS_DIR or ~/Downloads."
+fi
+
+echo "Done with winetricks, ICU, and MediaBay extraction!"

@@ -1,9 +1,11 @@
 #!/bin/bash
 set -e
 
-CACHE_DIR="$HOME/.cache/valerio-installers"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../common.sh"
+
 # Array of directories to search. Order matters: it will stop at the first match.
-SEARCH_DIRS=("$HOME/Downloads" "$CACHE_DIR" "$(pwd)")
+SEARCH_DIRS=("$VALERIO_INSTALLERS_DIR" "$HOME/Downloads" "$(pwd)")
 FOUND_INSTALLER=""
 
 # 1. Search Phase
@@ -28,16 +30,11 @@ done
 if [ -z "$FOUND_INSTALLER" ]; then
     echo "Error: NotePerformer installer not found locally."
     echo "NotePerformer must be downloaded manually from your personal link."
-    echo "Please place the installer in ~/Downloads, or run this script from the directory containing it."
+    echo "Please place the installer in $VALERIO_INSTALLERS_DIR, ~/Downloads, or run this script from the directory containing it."
     
-    # ==============================================================================
-    # FUTURE AUTOMATION SKELETON:
-    # If NotePerformer installer not found, we can send the user to the download page in their browser (NotePerformer bakes user activation into the installer-file, so we can't automate the download without user interaction).
-    # ==============================================================================
-
     exit 1
 fi
 
 # 3. Execution Phase
 # Passing the guaranteed absolute path ($FOUND_INSTALLER) to Wine inside the Distrobox container.
-distrobox enter dorico-box -- bash -c "export WINEPREFIX=\"\$HOME/dev/steinberg-on-linux/dorico-prefix\"; export PATH=\"/opt/wine-custom/bin:\$PATH\"; wine \"$FOUND_INSTALLER\""
+distrobox enter "$VALERIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$VALERIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; wine \"$FOUND_INSTALLER\""

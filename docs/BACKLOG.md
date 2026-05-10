@@ -16,6 +16,8 @@ We currently have `install_noteperformer.sh`, but we lack dedicated automation s
 *   [ ] **`install_mediabay.sh`**:
     *   Move the unzip logic currently inside `setup_prefix.sh` into this dedicated script. It should look for the user-provided `.zip` inside the designated `installers/` directory rather than the repo root.
     *   After unzipping and deleting the broken `preinstall.ps1`, the script must navigate into the `MediaBay_extracted/` directory, dynamically find the subfolder (e.g., `MediaBay 1.3.60` — this must be dynamic as versions will change), and execute `wine Setup.exe`.
+*   [ ] **`update_mediabay.sh` (or integrated into `install_mediabay.sh`)**:
+    *   Allow for independent updates of MediaBay to prevent SDA from attempting (and failing) to update it automatically.
 
 #### Subtasks: The "one-click" Bootstrapper (`install.sh`)
 *   [ ] **The Curl Command:** Create a single terminal command (e.g., `curl -sL ... | bash`) that users copy/paste from the GitHub README to download the installer framework.
@@ -50,14 +52,19 @@ We currently have `install_noteperformer.sh`, but we lack dedicated automation s
 This section tracks high-level goals and ideas that have not yet been broken down into concrete subtasks.
 
 *   [ ] **Container Digest Pinning:** To achieve maximum reproducibility and avoid potential issues with rolling `apt` updates on the host image, investigate pinning the Distrobox container to a specific SHA256 digest (e.g., `ubuntu@sha256:...`) rather than the floating `ubuntu:24.04` tag in the automated installer. We may actually NOT want to do this, as using an LTS may already be sufficient for reproducibility and any updates that get pushed to that OS version will likely be security patches and so forth but that do not affect API or binary compatibility.
-*   [ ] **Production Path Refactoring:** Transition from isolated development paths (`~/dev/...`) to standard production paths.
-    *   Remove hardcoded `$HOME/dev/steinberg-on-linux` references in `build_wine.sh` and `setup_prefix.sh` and replace them with dynamic workspace variables (e.g., `WORKSPACE_DIR="$(pwd)"` or `WORKSPACE_DIR="$HOME/.local/share/steinberg-on-linux"`).
-    *   Scripts must be updated to dynamically generate the Wine prefix in a user-agnostic XDG location (e.g., `~/.local/share/wineprefixes/dorico`) rather than the repo directory.
+*   [x] **Production Path Refactoring:** Transition from isolated development paths (`~/dev/...`) to standard production paths.
+    *   Removed hardcoded `$HOME/dev/steinberg-on-linux` references in `build_wine.sh` and `setup_prefix.sh` and replaced them with dynamic workspace variables and XDG-compliant paths.
+    *   Scripts now dynamically generate the Wine prefix in a user-agnostic XDG location (`~/.local/share/valerio/prefix`).
+    *   Added `scripts/common.sh` for shared environment variables.
+*   [ ] **Suppression of `rundll32` Errors:** During prefix initialization and `winetricks` execution, some `rundll32` errors may occur. Investigate their cause and implement suppression (e.g., via `WINEDEBUG=-all` for specific phases) to avoid confusing users.
 *   [ ] **High-DPI / 4K Scaling:** Wine isn't scaling automatically on one particular 4K 28" screen (not sure about other 4K screens). We need to investigate Wine DPI registry keys or a dynamic DPI switcher alias. ALSO, new discovery: turning off xwayland scaling sizes the app correctly, but things are blurry, so what probably needs to happen is that anytime you start the app, the launcher checks if that's off, if off, turns it on, then it checks the dpi of the monitor and sets the wine dpi settings accordingly. Closing it should set everything back.
 *   [ ] **VSTAudioEngine6.exe Crash:** The audio engine crashes cleanly upon closing Dorico. This does not prevent proper function of the application; it's just ugly/annoying. Need to investigate if this is a Pipewire/ASIO routing issue or a Wine teardown bug.
 *   [ ] **Visual Glitches / GE-Proton Experiment:** The current `zhiyi/wine` build has transparent text in SDA and font ugliness. Create an experimental Git branch to try patching `dcomp` directly onto an *optimal* version of GE-Proton (known working verison of GE Proton without the visual glitches: GE Proton 10.33, but we probably want to test against either GE Proton current, GE Proton rc, or whatever GE Proton matches zhiyi/wine).
 *   [ ] **GNOME / Adwaita Theming:** Investigate applying a Windows `.msstyles` theme to make Wine scrollbars and menus match GNOME/Adwaita natively. Explore having this run automatically if GNOME is detected. Consider doing the same for KDE, or just leaving it for KDE and all other DEs.
 *   [ ] **Version Manifest Generation:** Programmatically extract and record the exact version numbers of every piece of installed Steinberg software to create a reproducible manifest.
+*   [ ] **User Configuration Sync:** Create scripts to automate the backup/export and restoration of user key commands (`keycommands*.json`) and other critical preference files.
+*   [ ] **Automated 1st-Party Downloads:** Investigate and implement automated download fallbacks for 1st-party Steinberg components (SDA, MediaBay) if they are missing from the `installers/` directory.
+*   [ ] **System-Wide Logging:** Implement a structured logging framework (e.g., redirecting stdout/stderr to `~/.local/state/valerio/logs/`) to provide users with a "debug bundle" they can share when hitting issues.
 *   [ ] **"License Eater" Bug:** On prior attempts in Bottles, a (assumed) hardware fingerprinting issue is causing licenses to disappear. Determine if the issue exists under our current method, and, if so, figure out a strategy for maintaining hardware fingerprint (if that is the problem).
 *   [ ] **NotePerformer UI:** Fix graphical glitches in the NotePerformer VST window. (Determine if this is still an issue under the current custom Wine build).
 *   [ ] **"Edit Instrument"** Attempting to edit a VST instrument from within Play mode causes a crash/hang/failure. Investigate.

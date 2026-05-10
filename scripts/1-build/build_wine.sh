@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../common.sh"
+
 echo "Adding i386 architecture..."
 sudo dpkg --add-architecture i386
 
@@ -36,11 +39,14 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libasound2-dev:i386 libasound2-dev \
     libvulkan-dev:i386 libvulkan-dev \
     libsdl2-dev:i386 libsdl2-dev \
-    libudev-dev:i386 libudev-dev
+    libudev-dev:i386 libudev-dev \
+    winetricks \
+    unzip \
+    cabextract
 
 echo "Cloning zhiyi wine branch..."
-mkdir -p "$HOME/dev/steinberg-on-linux/wine-build"
-cd "$HOME/dev/steinberg-on-linux/wine-build"
+mkdir -p "$VALERIO_BUILD_DIR"
+cd "$VALERIO_BUILD_DIR"
 
 if [ ! -d "wine-source" ]; then
     git clone https://gitlab.winehq.org/zhiyi/wine wine-source

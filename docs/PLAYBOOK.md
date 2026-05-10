@@ -17,20 +17,6 @@ Before starting, please consult **[docs/RELEASES.md](RELEASES.md)**.
 
 ---
 
-## ⚠️ WARNING: Hardcoded Paths (Temporary)
-
-Currently, the scripts have hardcoded paths expecting the repository to be located at `~/dev/steinberg-on-linux`. Because the project is now called **Valerio**, cloning it would create a folder named `valerio`. 
-
-**Until this is fixed, you MUST do one of the following before proceeding:**
-1. Clone the repo directly into the expected folder:
-   `git clone <repo-url> ~/dev/steinberg-on-linux`
-2. OR, if already cloned as `valerio`, simply rename the directory
-   `mv ~/dev/valerio ~/dev/steinberg-on-linux`
-3. OR, if you prefer to keep the folder name as is, create a symlink:
-   `ln -s ~/dev/valerio ~/dev/steinberg-on-linux`
-
----
-
 ## Phase 1: Host Preparation (Manual)
 
 This phase establishes the isolated environment. The future master installer will likely handle this, but currently, it must be done manually on the host.
@@ -40,12 +26,12 @@ This phase establishes the isolated environment. The future master installer wil
 
 1. **Create the Environment:**
    ```bash
-   distrobox create -i ubuntu:24.04 -n steinberg-env
+   distrobox create -i ubuntu:24.04 -n valerio-env --yes
    ```
 2. **Enter the Container:**
    *(All Phase 2, 3, and 4 scripts must be executed inside this container).*
    ```bash
-   distrobox enter steinberg-env
+   distrobox enter valerio-env
    ```
 
 ---
@@ -74,19 +60,20 @@ This phase establishes the isolated environment. The future master installer wil
 **Execution Context:** Inside the container.
 **Prerequisites:** The Wine engine must be compiled and present in `/opt/wine-custom`.
 **What it does:**
-* Creates the Windows 10 prefix at `$HOME/dev/steinberg-on-linux/dorico-prefix`.
+* Creates the Windows 10 prefix at `~/.local/share/valerio/prefix`.
 * Installs core dependencies via Winetricks (`d3dx9`, `dotnet48`, etc.).
 
 **Execution:**
 ```bash
+# Ensure you have dropped MediaBay_Installer_win64.zip into the installers/ folder
 ./scripts/2-install/setup_prefix.sh
 ```
 
 **⚠️ Temporary Manual Step (See Backlog):** 
 Until `setup_prefix.sh` is updated to automate this, you must manually install the Wine-ICU MSIs into the prefix. (Check `RELEASES.md` for the correct version).
 ```bash
-wget https://dl.winehq.org/wine/wine-icu/72.1/wine-icu-72.1-x86.msi
-wget https://dl.winehq.org/wine/wine-icu/72.1/wine-icu-72.1-x86_64.msi
+wget https://gitlab.winehq.org/api/v4/projects/2302/packages/generic/wine-icu/72.1/wine-icu-72.1-x86.msi
+wget https://gitlab.winehq.org/api/v4/projects/2302/packages/generic/wine-icu/72.1/wine-icu-72.1-x86_64.msi
 wine msiexec /i wine-icu-72.1-x86.msi
 wine msiexec /i wine-icu-72.1-x86_64.msi
 ```
@@ -96,14 +83,15 @@ wine msiexec /i wine-icu-72.1-x86_64.msi
 ## Phase 4: Software Component Installation
 
 **Execution Context:** Inside the container.
-**Prerequisites:** The prefix must be initialized. Installers must be downloaded by the user and placed in a discoverable location (e.g., `~/Downloads`).
+**Prerequisites:** The prefix must be initialized. Installers must be downloaded by the user and placed in the `installers/` directory within the repository.
 
 **1. Install MediaBay**
-*   **Module:** `scripts/2-install/install_mediabay.sh` *(TODO: Currently handled haphazardly inside `setup_prefix.sh`)*
+*   **Module:** `scripts/2-install/setup_prefix.sh` (Handling extraction for now)
 *   **Manual Fallback:** Unzip the MediaBay installer, delete the broken `preinstall.ps1`, and run `wine Setup.exe`.
 
 **2. Install Steinberg Download Assistant (SDA)**
-*   **Module:** `scripts/2-install/install_sda.sh` *(TODO)*
+*   **Module:** `scripts/2-install/install_sda.sh`
+*   **Execution:** `./scripts/2-install/install_sda.sh`
 *   **Manual Fallback:** Run `wine Steinberg_Download_Assistant_...exe`.
 
 **3. Install NotePerformer (Optional)**
@@ -126,8 +114,8 @@ wine msiexec /i wine-icu-72.1-x86_64.msi
 ```bash
 exit # Leave the container
 mkdir -p ~/.local/bin
-cp ~/dev/steinberg-on-linux/scripts/3-runtime_handlers/*.sh ~/.local/bin/
+cp scripts/3-runtime_handlers/*.sh ~/.local/bin/
 chmod +x ~/.local/bin/*.sh
-cp ~/dev/steinberg-on-linux/desktop_stubs/*.desktop ~/.local/share/applications/
+cp desktop_stubs/*.desktop ~/.local/share/applications/
 update-desktop-database ~/.local/share/applications/
 ```
