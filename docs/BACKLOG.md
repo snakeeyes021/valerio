@@ -27,6 +27,7 @@ We currently have `install_noteperformer.sh`, but we lack dedicated automation s
 *   [ ] **Asset Validation:** Ensure an `installers/` directory exists and prompt the user to drop their `.exe` files into it before continuing.
 *   [ ] **Execution Chain:** Sequentially call `build_wine.sh` -> `setup_prefix.sh` -> `install_sda.sh` -> `install_mediabay.sh` -> `install_noteperformer.sh`.
 *   [ ] **Final Integration:** Automatically register the `.desktop` stubs and MIME types.
+*   [ ] **Cleanup/Uninstaller Script (`scripts/cleanup.sh`):** Create a robust script to wipe the environment (container, XDG share/cache dirs, and host integrations) to allow for clean re-installs or uninstallation.
 
 ### Epic: UX/UI Desktop Integration
 **Context:** Distrobox auto-exports `.desktop` files with proper icons, conflicting with our custom manual ones which handle the `net-steinberg-sam://` URI schemes. We need to merge the "Nice Icon" with the "Functional Link Handler" and establish actual scripted functionality. There may be other good stuff in the exported .desktop files that we want in ours.
