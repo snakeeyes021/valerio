@@ -21,7 +21,7 @@ Before running the installer, ensure your host system has the following installe
 
 You must provide your own Steinberg installers. 
 
-Download the following files from your Steinberg account (or the Steinberg website) to your `~/Downloads` folder:
+Download the following files from the Steinberg download pages for [Steinberg Download Assistant](https://o.steinberg.net/index.php?id=steinberg_download_assistant&L=1) and [Steinberg MediaBay](https://o.steinberg.net/index.php?id=15368&L=1) to your `~/Downloads` folder:
 
 *   `Steinberg_Download_Assistant_*_Installer_win.exe` (Mandatory)
 *   `MediaBay_Installer_win64.zip` (Mandatory)
