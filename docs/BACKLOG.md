@@ -10,10 +10,10 @@ This section tracks epics that have been broken down into concrete, actionable s
 
 #### Subtasks: Missing Component Scripts
 We currently have `install_noteperformer.sh`, but we lack dedicated automation scripts for the core Steinberg components. Before we can build the master wrapper, we must build and test:
-*   [ ] **`install_sda.sh`**:
+*   [x] **`install_sda.sh`**:
     *   Must use a generalized glob pattern (e.g., `Steinberg_Download_Assistant_*_Installer_win.exe`) to find the user-provided installer regardless of the version number they downloaded.
     *   Must handle the execution inside the container prefix.
-*   [ ] **`install_mediabay.sh`**:
+*   [x] **`install_mediabay.sh`**:
     *   Move the unzip logic currently inside `setup_prefix.sh` into this dedicated script. It should look for the user-provided `.zip` inside the designated `installers/` directory rather than the repo root.
     *   After unzipping, the script must perform a **recursive cleanup** of blocked files (e.g., `preinstall.ps1`) within the extracted directory to prevent "Not Trusted" error code 231.
     *   After cleanup, navigate into the versioned subfolder and execute `wine Setup.exe`.
@@ -22,12 +22,12 @@ We currently have `install_noteperformer.sh`, but we lack dedicated automation s
     *   The script must be aware of the fact that the MediaBay installer installs three components: MediaBay, Library Manager, and VST Sound Content Updates. If we were to e.g. take an approach of nuking the MediaBay install and reinstalling anytime we see there's an update, the script would need to know what to do about the other items. It may be moot; the installer might handle an update to individual components just fine.
 
 #### Subtasks: The "one-click" Bootstrapper (`install.sh`)
-*   [ ] **The Curl Command:** Create a single terminal command (e.g., `curl -sL ... | bash`) that users copy/paste from the GitHub README to download the installer framework.
-*   [ ] **Prerequisite Checks:** Script must check for `distrobox` (or `distroshelf`) and `docker`/`podman` (prompting the user to install them via Flatpak/system packages if missing). If missing, halt and print clear instructions to install them.
-*   [ ] **Asset Validation:** Ensure an `installers/` directory exists and prompt the user to drop their `.exe` files into it before continuing.
-*   [ ] **Execution Chain:** Sequentially call `build_wine.sh` -> `setup_prefix.sh` -> `install_sda.sh` -> `install_mediabay.sh` -> `install_noteperformer.sh`.
-*   [ ] **Final Integration:** Automatically register the `.desktop` stubs and MIME types.
-*   [ ] **Cleanup/Uninstaller Script (`scripts/cleanup.sh`):** Create a robust script to wipe the environment (container, XDG share/cache dirs, and host integrations) to allow for clean re-installs or uninstallation.
+*   [x] **The Curl Command:** Create a single terminal command (e.g., `curl -sL ... | bash`) that users copy/paste from the GitHub README to download the installer framework.
+*   [x] **Prerequisite Checks:** Script must check for `distrobox` (or `distroshelf`) and `docker`/`podman` (prompting the user to install them via Flatpak/system packages if missing). If missing, halt and print clear instructions to install them.
+*   [x] **Asset Validation:** Ensure an `installers/` directory exists and prompt the user to drop their `.exe` files into it before continuing.
+*   [x] **Execution Chain:** Sequentially call `build_wine.sh` -> `setup_prefix.sh` -> `install_sda.sh` -> `install_mediabay.sh` -> `install_noteperformer.sh`.
+*   [x] **Final Integration:** Automatically register the `.desktop` stubs and MIME types.
+*   [x] **Cleanup/Uninstaller Script (`scripts/cleanup.sh`):** Create a robust script to wipe the environment (container, XDG share/cache dirs, and host integrations) to allow for clean re-installs or uninstallation.
 
 ### Epic: UX/UI Desktop Integration
 **Context:** Distrobox auto-exports `.desktop` files with proper icons, conflicting with our custom manual ones which handle the `net-steinberg-sam://` URI schemes. We need to merge the "Nice Icon" with the "Functional Link Handler" and establish actual scripted functionality. There may be other good stuff in the exported .desktop files that we want in ours.

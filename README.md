@@ -1,35 +1,77 @@
 # Valerio 
-A unified installer for Dorico on Linux
+A unified installation framework for Dorico on Linux
 
 ## The Mission
-This project aims to bring Steinberg's Dorico to Linux via WINE.
+This project aims to simplify the process of installing Steinberg's Dorico on Linux via WINE. Steinberg software has historically been difficult to run on Linux due in large part to installer complexity, account logins/license validation, and web-to-app token handoffs. Typically, if a user could get past these pain points, the software itself would run decently. 
 
-Steinberg software has historically been difficult to run on Linux due largely to installer compatibility, account logins and token handoffs, and a small handful of other related technical hurdles. That is to say, the software itself generally runs decently well... if you can get that far.
+To that end, our goal is to provide a **reproducible, automated, and user-friendly** deployment system.
 
-Our goal is to solve these technical challenges and create a **reproducible, automated, and user-friendly** deployment system.
+---
 
-## Prerequisites (End Users)
-*(Note: The installer framework is currently under development. These are the planned requirements.)*
-*   A Linux distribution running **Distrobox** (and/or Distroshelf).
-*   A container engine (**Docker** or **Podman**).
-*   Your own downloaded Steinberg Windows installers (`.exe` / `.zip`). 
-    *   **Note:** Currently, all that is necessary is the Steinberg Download Assistant and Steinberg MediaBay; the Download Assistant installs the rest. (optional: Noteperformer)
+## Prerequisites
 
-## Installation
+Before running the installer, ensure your host system has the following installed:
 
-A single-command automated bootstrapper is currently in development. 
+1.  **Distrobox** (available in most standard repos) 
+    - Alternatively **Distroshelf** (a graphical frontend for managing Distrobox containers, available via Flathub)
+2.  **Docker** or **Podman**
+    - If you don't know which one to get, go with Podman. It's in the major repos and is therefore easier to install, and for most people they're functionally identical (the only people for whom the differences are material are people who already know which one they need).
 
-In the meantime, the intrepid among us can follow the **[Manual Deployment Playbook](docs/PLAYBOOK.md)** for a step-by-step guide to building the environment.
+## Step 1: Download Installers
+
+You must provide your own Steinberg installers. 
+
+Download the following files from your Steinberg account (or the Steinberg website) to your `~/Downloads` folder:
+
+*   `Steinberg_Download_Assistant_*_Installer_win.exe` (Mandatory)
+*   `MediaBay_Installer_win64.zip` (Mandatory)
+*   `NotePerformer-Installer-*.exe` (3rd-party, Optional)
+
+*Note: You do not need to download the Dorico installer itself. The Download Assistant will handle that once the environment is built.*
+
+## Step 2: Install Valerio
+
+Open your terminal and run the following commands to clone the repository and start the automated build process:
+
+```bash
+git clone https://github.com/snakeeyes021/valerio.git
+cd valerio
+./install.sh
+```
+
+*(You can append `-y` to `./install.sh` to bypass the installation manifest confirmation prompt).*
+
+### What happens next?
+The script will take a good while to run. It will:
+1. Generate an isolated Ubuntu container.
+2. Compile a custom version of Wine (with specific stubs required by Dorico).
+3. Initialize a Windows 10 prefix and install core dependencies.
+4. Pop up the Windows installers for MediaBay, the Download Assistant, and NotePerformer (if provided).
+5. Map the Steinberg desktop shortcuts and web-login handlers to your native Linux application menu. 
+    - Note: this part is still a work-in-progress. You may see multiple icons/app shortcuts be generated in your app drawer/menu. You'll generally want to always select the uglier ones without icons (the SDA and SAM have "handler" in the name as well). 
+
+Once complete, the Steinberg Download Assistant will launch automatically so you can sign in and download Dorico 6! We recommend using the "Install All" button for now, as the Steinberg Download Assistant is mostly illegible under the current build.
+
+---
+
+## Uninstallation / Clean Start
+
+If you ever need to completely wipe the Valerio environment (including the container, Wine prefix, and all installed software) to start fresh, simply run:
+
+```bash
+./scripts/cleanup.sh
+```
 
 ---
 
 ## For Developers & Contributors
-If you are looking to understand how this system works, contribute to the scripts, or read the historical design decisions, please refer to the `docs/` directory:
 
-*   **[Manual Playbook](docs/PLAYBOOK.md):** The step-by-step procedure to build the environment by hand.
+If you are looking to understand how this system works under the hood, contribute to the scripts, or read the historical design decisions, please refer to the `docs/` directory:
+
 *   **[Architecture & Blueprint](docs/ARCHITECTURE.md):** The core technical design (Containers, Custom Wine, URI Handoffs).
 *   **[Release Manifests](docs/RELEASES.md):** The verifiable combinations of Wine versions and Steinberg app versions.
 *   **[Project Backlog](docs/BACKLOG.md):** Current tasks and active sprint items.
+*   **[Manual Playbook](docs/PLAYBOOK.md):** The step-by-step procedure the automated scripts are based on.
 *   **[AI Agent Guide](docs/AGENTS.md):** Rules and constraints for LLMs assisting with this repository.
 
 ### Repository Structure
