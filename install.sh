@@ -148,4 +148,12 @@ echo ""
 echo "==========================================="
 echo "   Installation Complete!                 "
 echo "==========================================="
-echo "You can now launch Dorico 6, SAM, or SDA from your application menu."
+echo "Note: The desktop icons for Dorico 6 and Steinberg Activation Manager"
+echo "will not be fully functional until you download and install the actual"
+echo "software components from within the Steinberg Download Assistant."
+echo ""
+echo "Launching Steinberg Download Assistant now..."
+
+# Launch SDA via its host handler script
+"$HOME/.local/bin/steinberg-sda-handler.sh" &
+
