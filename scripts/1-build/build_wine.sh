@@ -42,7 +42,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libudev-dev:i386 libudev-dev \
     winetricks \
     unzip \
-    cabextract
+    cabextract \
+    icoutils
 
 echo "Cloning zhiyi wine branch..."
 mkdir -p "$VALERIO_BUILD_DIR"

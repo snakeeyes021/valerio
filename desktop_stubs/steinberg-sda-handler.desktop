@@ -1,6 +1,8 @@
 [Desktop Entry]
-Name=Steinberg SDA Handler
+Name=Steinberg Download Assistant
 Exec=bash -c '"$HOME/.local/bin/steinberg-sda-handler.sh" "%u"'
+Icon=valerio-sda
 Type=Application
 Terminal=false
+StartupWMClass=steinberg download assistant.exe
 MimeType=x-scheme-handler/net-steinberg-sda;

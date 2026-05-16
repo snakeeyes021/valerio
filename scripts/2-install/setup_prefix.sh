@@ -9,8 +9,8 @@ export WINE="$WINE_CUSTOM_BIN/wine"
 export WINESERVER="$WINE_CUSTOM_BIN/wineserver"
 export PATH="$WINE_CUSTOM_BIN:$PATH"
 
-# Suppress Wine Mono and Gecko installer prompts
-export WINEDLLOVERRIDES="mscoree=d;mshtml=d"
+# Suppress Wine Mono, Gecko installer prompts, and prevent winemenubuilder pollution
+export WINEDLLOVERRIDES="${WINEDLLOVERRIDES};mscoree=d;mshtml=d"
 
 echo "Initializing Wine prefix at $WINEPREFIX..."
 wineboot -u

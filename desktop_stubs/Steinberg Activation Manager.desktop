@@ -2,7 +2,9 @@
 Name=Steinberg Activation Manager
 Comment=Manage Steinberg Licenses
 Exec=bash -c '"$HOME/.local/bin/sam.sh" "%u"'
+Icon=valerio-sam
 Type=Application
 Terminal=false
+StartupWMClass=steinbergactivationmanager.exe
 Categories=AudioVideo;Audio;
 MimeType=x-scheme-handler/net-steinberg-activation-manager;x-scheme-handler/net-steinberg-sam;

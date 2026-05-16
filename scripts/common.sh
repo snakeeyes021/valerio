@@ -26,6 +26,9 @@ export VALERIO_INSTALLERS_DIR="$VALERIO_REPO_DIR/installers"
 export WINE_CUSTOM_PATH="/opt/wine-custom"
 export WINE_CUSTOM_BIN="$WINE_CUSTOM_PATH/bin"
 
+# Globally disable winemenubuilder to prevent host desktop pollution
+export WINEDLLOVERRIDES="winemenubuilder.exe=d"
+
 # Ensure directories exist
 # Note: We don't create the prefix here, as that's handled by wineboot.
 # But we ensure the base data and cache dirs exist.

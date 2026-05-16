@@ -132,6 +132,9 @@ if [ -n "$FOUND_NP" ]; then
     distrobox enter "$VALERIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/install_noteperformer.sh"
 fi
 
+echo "Extracting Desktop Icons..."
+distrobox enter "$VALERIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/extract_icons.sh"
+
 # 7. Host Integration
 echo "Phase 5: Performing Host Integration..."
 mkdir -p "$HOME/.local/bin"
