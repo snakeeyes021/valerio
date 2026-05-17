@@ -1,6 +1,6 @@
 # Contributing to Valerio
 
-Welcome to Valerio! Thanks for your interest in helpingg make Steinberg software run beautifully on Linux. Whether you're fixing a bug, tweaking a script, or improving documentation, we appreciate the support.
+Welcome to Valerio! Thanks for your interest in helping make Steinberg software run beautifully on Linux. Whether you're fixing a bug, tweaking a script, or improving documentation, we appreciate the support.
 
 Here is a quick guide to help you get up and running.
 
