@@ -35,3 +35,12 @@ The project's scripting is organized chronologically to represent the build-to-r
 *   **`2-install/`:** Scripts that bootstrap the Wine prefix (`winetricks`) and silently execute the Steinberg Windows installers within that prefix.
 *   **`3-runtime_handlers/`:** The critical glue. These scripts (`dorico.sh`, `sam.sh`, `steinberg-sda-handler.sh`) live on the host or are called by the host's `.desktop` files. They set the correct environment variables and execute the Wine binaries *inside* the Distrobox container.
 *   **`desktop_stubs/`:** Templates for the host OS integration, linking the user's application menu and web browser back to the `3-runtime_handlers`.
+
+## 4. Desktop Integration & File Association Quirks
+
+Because we actively suppress Wine's native host integrations (via `WINEDLLOVERRIDES="winemenubuilder.exe=d"`), we must manage desktop integrations manually:
+
+*   **Quote Injection & Translation:** Host wrapper scripts accept standard Linux paths, but they must securely translate these via `winepath -w` *inside* the container, suppressing Wine's debug outputs (`WINEDEBUG=-all`), and passing the result as a strict positional argument to prevent bash interpolation errors.
+*   **MIME Registration & Cache Override:** To securely associate project files (like `.dorico`), we inject a standard `application/x-dorico` XML into `~/.local/share/mime/packages/`. We must also explicitly set our custom `.desktop` stub as the default handler (via `xdg-mime default`) to prevent leftover Wine-generated `.desktop` files from intercepting clicks.
+*   **Window Manager Class (`StartupWMClass`):** GNOME uses the `StartupWMClass` to map running XWayland/Wine windows back to their launchers in the App Grid. Wine typically broadcasts the exact TitleCase string of the executable (e.g., `Dorico6.exe` or `Dorico.exe`). The `.desktop` stub must match this exactly.
+*   **Icon Extraction:** Secondary document icons must be programmatically extracted from the Windows `.exe` using `wrestool`. To comply with freedesktop.org specifications and avoid cache corruption, application icons must be installed to `apps/` while document icons *must* go to `mimetypes/`.

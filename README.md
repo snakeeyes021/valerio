@@ -48,7 +48,6 @@ The script will take a good while to run. It will:
 3. Initialize a Windows 10 prefix and install core dependencies.
 4. Pop up the Windows installers for MediaBay, the Download Assistant, and NotePerformer (if provided).
 5. Map the Steinberg desktop shortcuts and web-login handlers to your native Linux application menu. 
-    - Note: this part is still a work-in-progress. You may see multiple icons/app shortcuts be generated in your app drawer/menu. You'll generally want to always select the uglier ones without icons (the SDA and SAM have "handler" in the name as well). 
 
 Once complete, the Steinberg Download Assistant will launch automatically so you can sign in and download Dorico! We recommend using the "Install All" button for now, as the Steinberg Download Assistant is mostly illegible under the current build.
 
@@ -77,8 +76,9 @@ If you are looking to understand how this system works under the hood, contribut
 ### Repository Structure
 ```text
 valerio/
-├── README.md                 
-├── desktop_stubs/            # URI handlers and .desktop templates for the host
+├── README.md                 # This file
+├── install.sh                # The main one-click bootstrapper script
+├── desktop_stubs/            # URI handlers, .desktop templates, and MIME XMLs
 ├── docs/                     # Architectural, task, and release documentation
 └── scripts/
     ├── common.sh             # Shared environment variables and paths
