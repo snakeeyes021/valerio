@@ -158,13 +158,18 @@ echo "   Software Download Phase                 "
 echo "==========================================="
 echo "The Steinberg Download Assistant (SDA) will now open."
 echo "1. Sign in to your Steinberg account in your browser."
-echo "2. Install Dorico and all its related components ("Install All")."
+echo "2. Install Dorico and all its related components (\"Install All\")."
 echo "3. When the installation finishes, CLOSE the Download Assistant window."
 echo ""
 echo "Waiting for you to close Steinberg Download Assistant before finalizing..."
 
-# Run Steinberg Download Assistant synchronously
+# Run Steinberg Download Assistant synchronously (this often returns immediately due to single-instance handoff)
 "$HOME/.local/bin/steinberg-sda-handler.sh" || true
+
+# Polling loop to wait for detached SDA processes to terminate
+while distrobox enter "$VALERIO_CONTAINER_NAME" -- bash -c "ps auxww" | grep -iE "Steinberg Download Assistant\.exe|STEI~B2R\.EXE|aria2c\.exe" > /dev/null; do
+    sleep 3
+done
 
 echo "Steinberg Download Assistant closed. Finalizing integrations..."
 # Run the extraction script a SECOND time to catch the newly installed Dorico and SAM

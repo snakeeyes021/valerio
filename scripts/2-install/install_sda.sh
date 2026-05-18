@@ -49,3 +49,10 @@ else
     echo "Installing SDA silently..."
     wine "$FOUND_INSTALLER" --mode unattended || true
 fi
+
+# 4. Cleanup Phase
+# The SDA installer automatically launches background daemons (e.g., STEI~B2R.EXE, aria2c.exe) 
+# which lock the Wine prefix and cause subsequent installations (like NotePerformer) to hang.
+# We explicitly kill the prefix here to release all locks before the script moves on.
+echo "Cleaning up SDA background processes..."
+"$WINESERVER" -k || true
