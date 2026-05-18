@@ -5,17 +5,35 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-echo "⚠️  WARNING: This will permanently delete the following:"
+echo ""
+echo "WARNING:"
+echo ""
+echo "⚠️  If you have not deactivated your license(s), you will PERMANENTLY lose access!"
+echo "⚠️  If you store your Dorico projects inside the data directory, you will PERMANENTLY lose access!"
+echo ""
+echo "This operation will permanently delete the following:"
 echo " - Distrobox container: $VALERIO_CONTAINER_NAME"
 echo " - Data directory: $VALERIO_DATA_DIR (includes Wine prefix)"
 echo " - Cache directory: $VALERIO_CACHE_DIR (includes Wine source code and compilation artifacts)"
 echo " - Host integration scripts and .desktop files"
 echo " - Extracted desktop icons"
 echo ""
-read -p "Are you sure you want to continue? (y/N): " confirm
+read -p "Have you deactivated your license(s)? (y/N): " confirm
 
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
     echo "Cleanup cancelled."
+    exit 0
+fi
+read -p "Have you backed up any Dorico projects you were keeping in the data directory? (y/N): " confirm
+
+if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+    echo "Cleanup cancelled."
+    exit 0
+fi
+read -p "If you have read the above warning and would like to proceed, type 'yes, permanently delete everything' to continue: " confirm
+
+if [[ "$confirm" != "yes, permanently delete everything" ]]; then
+    echo "Confirmation failed. Cleanup cancelled."
     exit 0
 fi
 
