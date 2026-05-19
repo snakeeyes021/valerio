@@ -162,8 +162,11 @@ echo "2. Install Dorico and all its related components (\"Install All\")."
 echo "3. When the installation finishes, CLOSE the Download Assistant window."
 echo ""
 
-# The new interaction line
-read -p "Press [Enter] to open the Download Assistant..."
+if [ "$AUTO_ACCEPT" = false ]; then
+    read -p "Press [Enter] to open the Download Assistant..."
+else
+    echo "Opening the Download Assistant..."
+fi
 
 echo ""
 echo "Waiting for you to close Steinberg Download Assistant before finalizing..."
