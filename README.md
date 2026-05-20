@@ -78,6 +78,8 @@ If you are looking to understand how this system works under the hood, contribut
 ```text
 valerio/
 ├── README.md                 # This file
+├── CONTRIBUTING.md           # Guidelines for contributing and testing
+├── LICENSE                   # GNU General Public License v3.0
 ├── install.sh                # The main one-click bootstrapper script
 ├── desktop_stubs/            # URI handlers, .desktop templates, and MIME XMLs
 ├── docs/                     # Architectural, task, and release documentation
@@ -87,3 +89,11 @@ valerio/
     ├── 2-install/            # Bootstraps the prefix and installs software
     └── 3-runtime_handlers/   # Wrappers to launch the apps and handle web-logins
 ```
+
+## Legal & Disclaimer
+
+Valerio is an independent, community-driven open-source project. It is not affiliated, associated, authorized, endorsed by, or in any way officially connected with **Steinberg Media Technologies GmbH**, **Yamaha Corporation**, or any of their subsidiaries or affiliates.
+
+All product names, logos, copyrights, patents, and trademarks™ or registered® trademarks are the property of their respective owners. Their use in this project is for identification and interoperability purposes only and does not imply any association or endorsement.
+
+Valerio does not distribute any proprietary Steinberg assets, binaries, or code. Users must provide their own legally obtained software to use this tool.
