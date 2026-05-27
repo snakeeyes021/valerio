@@ -320,33 +320,58 @@ show_menu() {
     while true; do
         print_header
         echo ""
-        echo " 1) Install Torquio Environment"
-        echo " 2) Uninstall/Wipe Torquio"
-        echo " 3) Status Dashboard"
-        echo " 4) Configure Graphics & Scaling"
-        echo " 5) Fix Icons & Refresh Launchers"
-        echo " 6) Map a Folder as Wine Drive"
-        echo " 7) Export Dorico Key Commands"
-        echo " 8) Import Dorico Key Commands"
-        echo " 9) Run Custom WINE Configuration (winecfg)"
-        echo "10) Exit"
-        echo ""
-        read -p "Select an option (1-10): " choice
-        echo ""
-        case "$choice" in
-            1)  ./scripts/install.sh ;;
-            2)  ./scripts/cleanup.sh ;;
-            3)  show_status ;;
-            4)  configure_graphics; clear; continue ;;
-            5)  distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$TORQUIO_REPO_DIR\" && ./scripts/2-install/extract_icons.sh" ;;
-            6)  map_folder ;;
-            7)  export_keycommands ;;
-            8)  import_keycommands ;;
-            9)  local ft_int=$(get_config_val "freetype_interpreter" "40")
-                distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; winecfg" ;;
-            10) exit 0 ;;
-            *)  echo "Invalid option. Please choose 1-10." ;;
-        esac
+        
+        # Check if environment is active (container exists and core is installed)
+        local env_active=false
+        if distrobox list 2>/dev/null | grep -q "$TORQUIO_CONTAINER_NAME" && [ -f "$TORQUIO_PREFIX_DIR/.torquio_core_installed" ]; then
+            env_active=true
+        fi
+        
+        if [ "$env_active" = "true" ]; then
+            echo " 1) Reinstall/Update Torquio Environment"
+            echo " 2) Uninstall/Wipe Torquio"
+            echo " 3) Status Dashboard"
+            echo " 4) Configure Graphics & Scaling"
+            echo " 5) Fix Icons & Refresh Launchers"
+            echo " 6) Map a Folder as Wine Drive"
+            echo " 7) Export Dorico Key Commands"
+            echo " 8) Import Dorico Key Commands"
+            echo " 9) Run Custom WINE Configuration (winecfg)"
+            echo "10) Exit"
+            echo ""
+            read -p "Select an option (1-10): " choice
+            echo ""
+            case "$choice" in
+                1)  ./scripts/install.sh ;;
+                2)  ./scripts/cleanup.sh ;;
+                3)  show_status ;;
+                4)  configure_graphics; clear; continue ;;
+                5)  distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$TORQUIO_REPO_DIR\" && ./scripts/2-install/extract_icons.sh" ;;
+                6)  map_folder ;;
+                7)  export_keycommands ;;
+                8)  import_keycommands ;;
+                9)  local ft_int=$(get_config_val "freetype_interpreter" "40")
+                    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; winecfg" ;;
+                10) exit 0 ;;
+                *)  echo "Invalid option. Please choose 1-10." ;;
+            esac
+        else
+            echo " 1) Install Torquio Environment"
+            echo " 2) Clean/Remove Torquio"
+            echo " 3) Status Dashboard"
+            echo " 4) Exit"
+            echo ""
+            read -p "Select an option (1-4): " choice
+            echo ""
+            case "$choice" in
+                1)  ./scripts/install.sh ;;
+                2)  ./scripts/cleanup.sh ;;
+                3)  show_status ;;
+                4)  exit 0 ;;
+                *)  echo "Invalid option. Please choose 1-4." ;;
+            esac
+        fi
+        
         echo ""
         read -p "Press [Enter] to return to the main menu..." temp
         clear
