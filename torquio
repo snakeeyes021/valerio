@@ -337,7 +337,7 @@ show_menu() {
             1)  ./scripts/install.sh ;;
             2)  ./scripts/cleanup.sh ;;
             3)  show_status ;;
-            4)  configure_graphics ;;
+            4)  configure_graphics; clear; continue ;;
             5)  distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$TORQUIO_REPO_DIR\" && ./scripts/2-install/extract_icons.sh" ;;
             6)  map_folder ;;
             7)  export_keycommands ;;
