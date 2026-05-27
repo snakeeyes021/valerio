@@ -338,6 +338,92 @@ manage_keycommands() {
         esac
         echo ""
         read -p "Press [Enter] to continue..." temp_kc
+    done
+}
+
+run_custom_exe() {
+    echo "=== Run Custom Installer or Executable ==="
+    echo ""
+    local selected_exe=""
+    
+    if command -v zenity >/dev/null 2>&1; then
+        selected_exe=$(zenity --file-selection --file-filter="Executables (*.exe *.msi) | *.exe *.msi" --title="Select Executable to Run" 2>/dev/null)
+    elif command -v kdialog >/dev/null 2>&1; then
+        selected_exe=$(kdialog --getopenfilename "$HOME" "*.exe *.msi" --title="Select Executable to Run" 2>/dev/null)
+    else
+        read -p "Enter the absolute path to the .exe or .msi file: " selected_exe
+    fi
+    
+    if [ -z "$selected_exe" ] || [ ! -f "$selected_exe" ]; then
+        echo "No valid file selected. Operation cancelled."
+        return
+    fi
+    
+    echo "Running: $selected_exe"
+    
+    local translated_path=$(distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEDEBUG=-all; export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; winepath -w \"$selected_exe\"" | tr -d '\r')
+    local ft_int=$(get_config_val "freetype_interpreter" "40")
+    
+    if [[ "$selected_exe" =~ \.msi$ ]]; then
+        distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; wine msiexec /i \"$translated_path\""
+    else
+        distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; wine \"$translated_path\""
+    fi
+    
+    echo "Execution completed."
+}
+
+manage_wine() {
+    while true; do
+        echo "=== Wine Tools & Maintenance ==="
+        echo ""
+        echo " 1) Run Wine Configuration (winecfg)"
+        echo " 2) Run Registry Editor (regedit)"
+        echo " 3) Run Control Panel (control)"
+        echo " 4) Run File Manager (explorer)"
+        echo " 5) Run Command Prompt (cmd)"
+        echo " 6) Reboot Wine Prefix (wineboot -r)"
+        echo " 7) Shutdown Wine Server (wineserver -k)"
+        echo " 8) Run Custom Installer/Executable (.exe/.msi)"
+        echo " 9) [Back to main menu]"
+        echo ""
+        read -p "Select an option (1-9): " opt_wine
+        local ft_int=$(get_config_val "freetype_interpreter" "40")
+        case "$opt_wine" in
+            1)
+                distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; winecfg"
+                ;;
+            2)
+                distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; regedit"
+                ;;
+            3)
+                distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; wine control"
+                ;;
+            4)
+                distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; wine explorer"
+                ;;
+            5)
+                distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; wine cmd"
+                ;;
+            6)
+                echo "Rebooting Wine prefix..."
+                distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; wineboot -r"
+                echo "Prefix reboot completed."
+                ;;
+            7)
+                echo "Shutting down Wine server..."
+                distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; wineserver -k"
+                echo "Wine server shutdown complete."
+                ;;
+            8)
+                run_custom_exe
+                ;;
+            *)
+                return
+                ;;
+        esac
+        echo ""
+        read -p "Press [Enter] to continue..." temp_wine
         clear
     done
 }
@@ -361,7 +447,7 @@ show_menu() {
             echo " 5) Fix Icons & Refresh Launchers"
             echo " 6) Map a Folder as Wine Drive"
             echo " 7) Manage Dorico Key Commands"
-            echo " 8) Run Custom WINE Configuration (winecfg)"
+            echo " 8) Wine Tools & Maintenance"
             echo " 9) Exit"
             echo ""
             read -p "Select an option (1-9): " choice
@@ -374,8 +460,7 @@ show_menu() {
                 5)  distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$TORQUIO_REPO_DIR\" && ./scripts/2-install/extract_icons.sh" ;;
                 6)  map_folder ;;
                 7)  manage_keycommands; clear; continue ;;
-                8)  local ft_int=$(get_config_val "freetype_interpreter" "40")
-                    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; winecfg" ;;
+                8)  manage_wine; clear; continue ;;
                 9)  exit 0 ;;
                 *)  echo "Invalid option. Please choose 1-9." ;;
             esac
