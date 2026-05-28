@@ -148,7 +148,10 @@ distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && .
 # 8. Host Integration
 echo "Phase 5: Performing Host Integration..."
 mkdir -p "$HOME/.local/bin"
-rm -f "$HOME/.local/bin/torquio-dorico" "$HOME/.local/bin/torquio-sam" "$HOME/.local/bin/torquio-sda-handler"
+rm -f "$HOME/.local/bin/torquio" "$HOME/.local/bin/torquio-dorico" "$HOME/.local/bin/torquio-sam" "$HOME/.local/bin/torquio-sda-handler"
+
+echo "Installing torquio orchestrator to ~/.local/bin/torquio..."
+ln -s "$SCRIPT_DIR/torquio" "$HOME/.local/bin/torquio"
 
 for handler in "$SCRIPT_DIR/scripts/3-runtime_handlers/"torquio-*; do
     base_name=$(basename "$handler")
@@ -158,7 +161,7 @@ for handler in "$SCRIPT_DIR/scripts/3-runtime_handlers/"torquio-*; do
         cp "$handler" "$HOME/.local/bin/"
     fi
 done
-chmod +x "$HOME/.local/bin/"torquio-*
+chmod +x "$HOME/.local/bin/"torquio*
 
 mkdir -p "$HOME/.local/share/applications"
 

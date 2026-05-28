@@ -4,7 +4,7 @@ set -e
 # Torquio: Steinberg on Linux CLI App
 # Replaces simple install wrappers with a unified console manager.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 source "$SCRIPT_DIR/scripts/common.sh"
 
 print_header() {
@@ -481,8 +481,8 @@ show_menu() {
             read -p "Select an option (1-9): " choice
             echo ""
             case "$choice" in
-                1)  ./scripts/install.sh ;;
-                2)  ./scripts/cleanup.sh ;;
+                1)  "$SCRIPT_DIR/scripts/install.sh" ;;
+                2)  "$SCRIPT_DIR/scripts/cleanup.sh" ;;
                 3)  show_status ;;
                 4)  configure_graphics; clear; continue ;;
                 5)  distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$TORQUIO_REPO_DIR\" && ./scripts/2-install/extract_icons.sh" ;;
@@ -501,8 +501,8 @@ show_menu() {
             read -p "Select an option (1-4): " choice
             echo ""
             case "$choice" in
-                1)  ./scripts/install.sh ;;
-                2)  ./scripts/cleanup.sh ;;
+                1)  "$SCRIPT_DIR/scripts/install.sh" ;;
+                2)  "$SCRIPT_DIR/scripts/cleanup.sh" ;;
                 3)  show_status ;;
                 4)  exit 0 ;;
                 *)  echo "Invalid option. Please choose 1-4." ;;
@@ -520,11 +520,11 @@ if [ $# -gt 0 ]; then
     case "$1" in
         -i|--install)
             shift
-            ./scripts/install.sh "$@"
+            "$SCRIPT_DIR/scripts/install.sh" "$@"
             ;;
         -r|--uninstall)
             shift
-            ./scripts/cleanup.sh "$@"
+            "$SCRIPT_DIR/scripts/cleanup.sh" "$@"
             ;;
         -f|--fix-icons)
             distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$TORQUIO_REPO_DIR\" && ./scripts/2-install/extract_icons.sh"
@@ -536,7 +536,7 @@ if [ $# -gt 0 ]; then
             show_status
             ;;
         -u|--update)
-            ./scripts/2-install/update_mediabay.sh
+            "$SCRIPT_DIR/scripts/2-install/update_mediabay.sh"
             ;;
         -w|--winecfg)
             local ft_int=$(get_config_val "freetype_interpreter" "40")

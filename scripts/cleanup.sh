@@ -64,6 +64,7 @@ rm -rf "$HOME/.config/torquio"
 
 echo "Removing host integrations..."
 # Removing scripts from ~/.local/bin
+rm -f "$HOME/.local/bin/torquio"
 rm -f "$HOME/.local/bin/torquio-dorico"
 rm -f "$HOME/.local/bin/torquio-sam"
 rm -f "$HOME/.local/bin/torquio-sda-handler"
