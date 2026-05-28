@@ -372,14 +372,16 @@ manage_keycommands() {
 run_custom_exe() {
     echo "=== Run Custom Installer or Executable ==="
     echo ""
-    local selected_exe=""
+    local selected_exe="$1"
     
-    if command -v zenity >/dev/null 2>&1; then
-        selected_exe=$(zenity --file-selection --file-filter="Executables (*.exe *.msi) | *.exe *.msi" --title="Select Executable to Run" 2>/dev/null)
-    elif command -v kdialog >/dev/null 2>&1; then
-        selected_exe=$(kdialog --getopenfilename "$HOME" "*.exe *.msi" --title="Select Executable to Run" 2>/dev/null)
-    else
-        read -p "Enter the absolute path to the .exe or .msi file: " selected_exe
+    if [ -z "$selected_exe" ]; then
+        if command -v zenity >/dev/null 2>&1; then
+            selected_exe=$(zenity --file-selection --file-filter="Executables (*.exe *.msi) | *.exe *.msi" --title="Select Executable to Run" 2>/dev/null)
+        elif command -v kdialog >/dev/null 2>&1; then
+            selected_exe=$(kdialog --getopenfilename "$HOME" "*.exe *.msi" --title="Select Executable to Run" 2>/dev/null)
+        else
+            read -p "Enter the absolute path to the .exe or .msi file: " selected_exe
+        fi
     fi
     
     if [ -z "$selected_exe" ] || [ ! -f "$selected_exe" ]; then
@@ -518,11 +520,11 @@ show_menu() {
 # --- CLI Flag Parsing Mode ---
 if [ $# -gt 0 ]; then
     case "$1" in
-        -i|--install)
+        -i|--install|--reinstall)
             shift
             "$SCRIPT_DIR/scripts/install.sh" "$@"
             ;;
-        -r|--uninstall)
+        -r|--remove|--uninstall)
             shift
             "$SCRIPT_DIR/scripts/cleanup.sh" "$@"
             ;;
@@ -538,33 +540,50 @@ if [ $# -gt 0 ]; then
         -u|--update)
             "$SCRIPT_DIR/scripts/2-install/update_mediabay.sh"
             ;;
-        -w|--winecfg)
-            local ft_int=$(get_config_val "freetype_interpreter" "40")
-            distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; winecfg"
-            ;;
         -d|--map_folder)
             map_folder "$2" "$3"
             ;;
         -x|--export_key_commands)
             export_keycommands
             ;;
-        -k|--import_key_commands)
+        -m|--import_key_commands)
             import_keycommands
+            ;;
+        -w|--winecfg)
+            ft_int=$(get_config_val "freetype_interpreter" "40")
+            distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; winecfg" || true
+            ;;
+        -k|--kill_wine)
+            echo "Shutting down Wine server..."
+            distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; wineserver -k" || true
+            echo "Wine server shutdown complete."
+            ;;
+        -b|--reboot)
+            echo "Rebooting Wine prefix..."
+            ft_int=$(get_config_val "freetype_interpreter" "40")
+            distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; wineboot -r" || true
+            echo "Prefix reboot completed."
+            ;;
+        -e|--execute|--run)
+            run_custom_exe "$2"
             ;;
         *)
             echo "Error: Unknown argument '$1'"
             echo "Usage: ./torquio [flags]"
             echo "Flags:"
-            echo "  -i, --install             Run clean container/prefix setup."
-            echo "  -r, --uninstall           Complete environment purge."
-            echo "  -f, --fix-icons           Refresh host desktop icons."
-            echo "  -g, --graphics            Interact with display scaling configs."
-            echo "  -s, --status              Display status dashboard."
-            echo "  -u, --update              Update MediaBay."
-            echo "  -w, --winecfg             Launch winecfg in the container prefix."
-            echo "  -d, --map_folder [p] [l]  Map folder positional/interactively."
-            echo "  -x, --export_key_commands Export key commands to zip."
-            echo "  -k, --import_key_commands Import key commands zip/json."
+            echo "  -i, --install, --reinstall  Run clean container/prefix setup."
+            echo "  -r, --remove, --uninstall   Complete environment purge."
+            echo "  -f, --fix-icons             Refresh host desktop icons."
+            echo "  -g, --graphics              Interact with display scaling configs."
+            echo "  -s, --status                Display status dashboard."
+            echo "  -u, --update                Update MediaBay."
+            echo "  -d, --map_folder [p] [l]    Map folder positional/interactively."
+            echo "  -x, --export_key_commands   Export key commands to zip."
+            echo "  -m, --import_key_commands   Import key commands zip/json."
+            echo "  -w, --winecfg               Launch winecfg in the container prefix."
+            echo "  -k, --kill_wine             Shutdown all active Wine/Steinberg processes."
+            echo "  -b, --reboot                Simulate a Windows reboot inside the prefix."
+            echo "  -e, --execute, --run [file] Execute a custom .exe or .msi in the prefix."
             exit 1
             ;;
     esac
