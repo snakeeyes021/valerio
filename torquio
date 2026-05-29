@@ -305,7 +305,7 @@ map_folder() {
         
         if [ -z "$host_folder" ] || [ ! -d "$host_folder" ]; then
             echo "Error: Invalid folder path. Mapping cancelled."
-            return
+            return 1
         fi
         
         for letter in d e f g h i j k l m n o p q r s t u v w x y z; do
@@ -317,7 +317,7 @@ map_folder() {
         
         if [ -z "$drive_letter" ]; then
             echo "Error: No available drive letters left!"
-            return
+            return 1
         fi
     fi
     
@@ -329,17 +329,105 @@ map_folder() {
     
     if [ ! -d "$real_host_folder" ]; then
         echo "Error: Local folder '$real_host_folder' does not exist."
-        return
+        return 1
     fi
     
     if [ ! -d "$TORQUIO_PREFIX_DIR/dosdevices" ]; then
         echo "Error: Wine prefix has not been initialized. Please run setup first."
-        return
+        return 1
     fi
     
-    rm -f "$TORQUIO_PREFIX_DIR/dosdevices/$drive_letter"
-    ln -s "$real_host_folder" "$TORQUIO_PREFIX_DIR/dosdevices/$drive_letter"
+    local link_path="$TORQUIO_PREFIX_DIR/dosdevices/$drive_letter"
+    if [ -L "$link_path" ]; then
+        local current_target=$(readlink -f "$link_path")
+        if [ "$current_target" = "$real_host_folder" ]; then
+            echo "Folder '$real_host_folder' is already mapped to Wine drive ${drive_letter^^}\\"
+            return 1
+        fi
+    fi
+    
+    rm -f "$link_path"
+    ln -s "$real_host_folder" "$link_path"
     echo "Successfully mapped '$real_host_folder' to Wine drive ${drive_letter^^}\\"
+    return 0
+}
+
+unmap_folder() {
+    echo "=== Unmap Local Folder ==="
+    if [ ! -d "$TORQUIO_PREFIX_DIR/dosdevices" ]; then
+        echo "Error: Wine prefix has not been initialized. Please run setup first."
+        return 1
+    fi
+
+    local mapped_drives=()
+    local drive_letters=()
+    for letter in d e f g h i j k l m n o p q r s t u v w x y; do
+        local link_path="$TORQUIO_PREFIX_DIR/dosdevices/${letter}:"
+        if [ -L "$link_path" ]; then
+            local target=$(readlink -f "$link_path")
+            mapped_drives+=("${letter^^}: -> $target")
+            drive_letters+=("$letter")
+        fi
+    done
+
+    if [ ${#mapped_drives[@]} -eq 0 ]; then
+        echo "No mapped folders found."
+        return 1
+    fi
+
+    echo "Currently mapped folders:"
+    for i in "${!mapped_drives[@]}"; do
+        echo "  $((i+1))) ${mapped_drives[$i]}"
+    done
+    echo "  $(( ${#mapped_drives[@]} + 1 ))) [Cancel]"
+    echo ""
+    read -p "Select a drive to unmap (1-$(( ${#mapped_drives[@]} + 1 ))): " choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#mapped_drives[@]}" ]; then
+        local idx=$((choice-1))
+        local target_letter="${drive_letters[$idx]}"
+        rm -f "$TORQUIO_PREFIX_DIR/dosdevices/${target_letter}:"
+        echo "Successfully unmapped drive ${target_letter^^}:"
+        return 0
+    else
+        echo "Operation cancelled."
+        return 1
+    fi
+}
+
+manage_folder_mappings() {
+    local wine="\033[38;5;125m"
+    local reset="\033[0m"
+    local blue="\033[38;5;110m"
+
+    while true; do
+        echo -e "${blue}=== Manage Folder Mappings ===${reset}"
+        echo ""
+        echo -e "  ${wine}1)${reset} Map a Local Folder to Wine"
+        echo -e "  ${wine}2)${reset} Unmap an Existing Wine Folder"
+        echo -e "  ${wine}3)${reset} [Back to main menu]"
+        echo ""
+        read -p "Select an option (1-3): " opt_map
+        case "$opt_map" in
+            1)
+                echo ""
+                if map_folder; then
+                    echo ""
+                    read -p "Press [Enter] to continue..." temp_map
+                fi
+                ;;
+            2)
+                echo ""
+                if unmap_folder; then
+                    echo ""
+                    read -p "Press [Enter] to continue..." temp_map
+                fi
+                ;;
+            *)
+                return
+                ;;
+        esac
+        clear
+    done
 }
 
 export_keycommands() {
@@ -581,7 +669,7 @@ show_menu() {
             echo -e "  ${wine}3)${reset} Status Dashboard"
             echo -e "  ${wine}4)${reset} Configure Graphics & Scaling"
             echo -e "  ${wine}5)${reset} Fix Icons & Refresh Launchers"
-            echo -e "  ${wine}6)${reset} Map a Folder as Wine Drive"
+            echo -e "  ${wine}6)${reset} Manage Folder Mappings (Map/Unmap)"
             echo -e "  ${wine}7)${reset} Manage Dorico Key Commands"
             echo -e "  ${wine}8)${reset} Wine Tools & Maintenance"
             echo -e "  ${wine}9)${reset} Exit"
@@ -594,7 +682,7 @@ show_menu() {
                 3)  show_status ;;
                 4)  configure_graphics; clear; continue ;;
                 5)  distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$TORQUIO_REPO_DIR\" && ./scripts/2-install/extract_icons.sh" ;;
-                6)  map_folder ;;
+                6)  manage_folder_mappings; clear; continue ;;
                 7)  manage_keycommands; clear; continue ;;
                 8)  manage_wine; clear; continue ;;
                 9)  exit 0 ;;
