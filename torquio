@@ -588,10 +588,12 @@ manage_wine() {
         echo -e "  ${wine}7)${reset} Shutdown Wine Server (wineserver -k)"
         echo -e "  ${wine}8)${reset} Monitor XWayland Keyboard Events (xev)"
         echo -e "  ${wine}9)${reset} Run Custom Installer/Executable (.exe/.msi)"
-        echo -e "  ${wine}10)${reset} [Back to main menu]"
+        echo -e "  ${wine}10)${reset} Open C: Drive in Host File Manager"
+        echo -e "  ${wine}11)${reset} [Back to main menu]"
         echo ""
-        read -p "Select an option (1-10): " opt_wine
+        read -p "Select an option (1-11): " opt_wine
         local ft_int=$(get_config_val "freetype_interpreter" "40")
+        local should_prompt=true
         case "$opt_wine" in
             1)
                 distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$ft_int\"; winecfg" || true
@@ -639,12 +641,23 @@ manage_wine() {
             9)
                 run_custom_exe
                 ;;
+            10)
+                if [ -d "$TORQUIO_PREFIX_DIR/drive_c" ]; then
+                    echo "Opening C: Drive in host file manager..."
+                    xdg-open "$TORQUIO_PREFIX_DIR/drive_c" >/dev/null 2>&1 &
+                    should_prompt=false
+                else
+                    echo "Error: Wine prefix C: drive does not exist yet."
+                fi
+                ;;
             *)
                 return
                 ;;
         esac
-        echo ""
-        read -p "Press [Enter] to continue..." temp_wine
+        if [ "$should_prompt" = "true" ]; then
+            echo ""
+            read -p "Press [Enter] to continue..." temp_wine
+        fi
         clear
     done
 }
