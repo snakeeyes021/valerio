@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../common.sh"
 
-if [ -f "/opt/wine-custom/bin/wine" ]; then
+if [ -f "/opt/wine-custom/.torquio_wine_build_complete" ]; then
     echo "Custom Wine engine is already compiled and installed at /opt/wine-custom. Skipping build."
     exit 0
 fi
@@ -83,4 +83,5 @@ sudo chown $USER:$USER /opt/wine-custom
 cd ../wine64 && make install prefix=/opt/wine-custom
 cd ../wine32 && make install prefix=/opt/wine-custom
 
+touch /opt/wine-custom/.torquio_wine_build_complete
 echo "Done building Wine!"
