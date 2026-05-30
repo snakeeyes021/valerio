@@ -21,7 +21,75 @@ echo "Initializing Wine prefix at $WINEPREFIX..."
 wineboot -u
 
 echo "Installing winetricks dependencies (this may pop up some windows, please click through them if needed)..."
-winetricks -q d3dx9 msls31 allfonts d3dcompiler_43 d3dcompiler_47 vcrun2019 dotnet48 win10
+
+# Array of packages to install
+PACKAGES=("d3dx9" "msls31" "allfonts" "d3dcompiler_43" "d3dcompiler_47" "vcrun2019" "dotnet48" "win10")
+
+for pkg in "${PACKAGES[@]}"; do
+    MARKER_FILE="$WINEPREFIX/.torquio_wt_${pkg}_installed"
+    
+    if [ -f "$MARKER_FILE" ]; then
+        echo "Package $pkg already installed successfully. Skipping."
+        continue
+    fi
+
+    echo "Attempting to install: $pkg"
+    MAX_RETRIES=5
+    RETRY_COUNT=0
+    SUCCESS=0
+
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        # Run winetricks for the specific package
+        # We disable 'set -e' temporarily so a failing winetricks command doesn't crash the script
+        set +e
+        winetricks -q "$pkg"
+        WT_STATUS=$?
+        set -e
+        
+        if [ $WT_STATUS -eq 0 ]; then
+            echo "Successfully installed: $pkg"
+            touch "$MARKER_FILE"
+            SUCCESS=1
+            break
+        else
+            echo "WARNING: winetricks failed to install $pkg (Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)."
+            
+            # Wipe the cache for the failed package to handle broken fallback HTML downloads
+            if [ "$pkg" == "allfonts" ]; then
+                # allfonts touches many cache directories, safest to wipe the whole winetricks cache
+                # except for packages we know we already installed. Since we are in the middle of
+                # an install process, wiping the cache is safe.
+                echo "Wiping winetricks cache due to 'allfonts' failure..."
+                rm -rf ~/.cache/winetricks/*
+            else
+                echo "Wiping cache for $pkg..."
+                rm -rf ~/.cache/winetricks/"$pkg"
+            fi
+
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Waiting 30 seconds before retrying..."
+                sleep 30
+            fi
+        fi
+    done
+
+    if [ $SUCCESS -eq 0 ]; then
+        echo "======================================================================"
+        echo "ERROR: Failed to install winetricks package: $pkg after $MAX_RETRIES attempts."
+        echo "This is frequently caused by a transient issue with the SourceForge or Wayback Machine servers."
+        echo ""
+        echo "If your internet connection is working correctly for other tasks, the problem"
+        echo "is likely not on your end. Please wait a few minutes and re-run the master"
+        echo "installer orchestrator script."
+        echo ""
+        echo "NOTE: You DO NOT need to delete your existing prefix or start from scratch."
+        echo "The script will automatically resume from this exact point when you run it again."
+        echo "======================================================================"
+        exit 1
+    fi
+done
 
 echo "Configuring Keyboard Focus Loss Mitigation & Accessibility Registry Overrides..."
 # FocusOnClick forces window focus acquisition upon mouse click, preventing focus loss in modals
