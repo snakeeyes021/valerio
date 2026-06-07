@@ -2,7 +2,7 @@
 set -e
 
 # Torquio Master Installer
-# This script automates the entire installation process for Steinberg software on Linux.
+# This script automates the installation and configuration wizard process for Steinberg software on Linux.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$SCRIPT_DIR/scripts/common.sh"
@@ -17,192 +17,530 @@ gray="\033[38;5;244m"
 green="\033[38;5;108m"
 red="\033[38;5;167m"
 yellow="\033[38;5;179m"
+blue="\033[38;5;110m"
+dark_gray="\033[38;5;240m"
 reset="\033[0m"
 
-echo -e "${gray}===========================================${reset}"
-echo -e "   ${wine}Torquio: Dorico on Linux Installer${reset}   "
-echo -e "${gray}===========================================${reset}"
-echo ""
-
-# 1. Prerequisite Checks
-echo "Checking prerequisites..."
-if ! command -v distrobox >/dev/null 2>&1; then
-    echo -e "${red}Error: distrobox is not installed.${reset}"
-    echo "Please install distrobox and either docker or podman."
-    exit 1
-fi
-
-# Check for docker or podman
-if ! command -v docker >/dev/null 2>&1 && ! command -v podman >/dev/null 2>&1; then
-    echo -e "${red}Error: Neither docker nor podman was found.${reset}"
-    echo "Please install one of them to use with distrobox."
-    exit 1
-fi
-
-# 2. Scaling Setup Pre-Installation Prompts
-echo -e "${wine}=== Display Scaling Setup ===${reset}"
-if [ "$XDG_SESSION_TYPE" = "x11" ]; then
-    set_config_val "manage_graphics" "false"
-    set_config_val "manual_dpi" "96"
-    echo -e "X11 session detected. Automated Graphics Management is disabled."
-    echo -e "WINE natively detects host display scaling settings under X11."
-elif [ "$AUTO_ACCEPT" = true ]; then
-    set_config_val "manage_graphics" "false"
-    set_config_val "manual_dpi" "96"
-    echo -e "Using default: manage_graphics=${wine}false${reset}, manual_dpi=${wine}96${reset}"
-else
-    echo "Torquio can automatically manage host display scaling and Wine DPI settings to"
-    echo "ensure that Dorico and other applications render correctly on High-DPI screens."
+print_wizard_banner() {
+    clear 2>/dev/null || true
+    echo -e "${gray}================================================================${reset}"
+    echo -e " ${wine} ████████╗  ██████╗  ██████╗   ██████╗  ██╗   ██╗ ██╗  ██████╗${reset}"
+    echo -e " ${wine} ╚══██╔══╝ ██╔═══██╗ ██╔══██╗ ██╔═══██╗ ██║   ██║ ██║ ██╔═══██╗${reset}"
+    echo -e " ${wine}    ██║    ██║   ██║ ██████╔╝ ██║   ██║ ██║   ██║ ██║ ██║   ██║${reset}"
+    echo -e " ${wine}    ██║    ██║   ██║ ██╔══██╗ ██║▄▄ ██║ ██║   ██║ ██║ ██║   ██║${reset}"
+    echo -e " ${wine}    ██║    ╚██████╔╝ ██║  ██║ ╚██████╔╝ ╚██████╔╝ ██║ ╚██████╔╝${reset}"
+    echo -e " ${wine}    ╚═╝     ╚═════╝  ╚═╝  ╚═╝  ╚══▀▀═╝   ╚═════╝  ╚═╝  ╚═════╝${reset}"
+    echo -e " ${wine}                            —— B Y  R E D  F O X  L A B S ——${reset}"
+    echo -e "${gray}================================================================${reset}"
+    echo -e "                    TORQUIO INSTALLATION WIZARD                 "
+    echo -e "${gray}================================================================${reset}"
     echo ""
-    read -p "Would you like Torquio to automatically manage display scaling and DPI? [Y/n]: " manage_scaling
-    if [[ ! "$manage_scaling" =~ ^[Nn]$ ]]; then
-        set_config_val "manage_graphics" "true"
-        set_config_val "manual_dpi" "96"
-        echo -e "  [${green}ENABLED${reset}] Automatic display scaling and DPI management enabled."
-        echo "  (Torquio will back up your current display scaling settings before"
-        echo "   making any changes so they can be easily restored later.)"
-    else
-        set_config_val "manage_graphics" "false"
-        set_config_val "manual_dpi" "96"
-        echo -e "  [${red}DISABLED${reset}] Automatic display scaling disabled. Standard 96 DPI will be used."
+}
+
+# 1. State Detection & Action Choice
+CONTAINER_EXISTS=false
+if distrobox list 2>/dev/null | grep -q "$TORQUIO_CONTAINER_NAME"; then
+    CONTAINER_EXISTS=true
+fi
+
+PREFIX_EXISTS=false
+if [ -d "$TORQUIO_PREFIX_DIR" ]; then
+    PREFIX_EXISTS=true
+fi
+
+CORE_INSTALLED=false
+if [ -f "$TORQUIO_PREFIX_DIR/.torquio_core_installed" ]; then
+    CORE_INSTALLED=true
+fi
+
+ACTION="install"
+RUN_WIZARD=true
+
+if [ "$AUTO_ACCEPT" = false ] && { [ "$CONTAINER_EXISTS" = true ] || [ "$PREFIX_EXISTS" = true ]; }; then
+    print_wizard_banner
+    
+    c_status="${red}Missing${reset}"
+    if [ "$CONTAINER_EXISTS" = true ]; then
+        c_status="${green}Created${reset}"
+    fi
+    p_status="${red}Missing${reset}"
+    if [ "$PREFIX_EXISTS" = true ]; then
+        p_status="${green}Initialized${reset}"
+    fi
+    d_status="${red}Incomplete${reset}"
+    if [ "$CORE_INSTALLED" = true ]; then
+        d_status="${green}Installed${reset}"
+    fi
+    
+    echo -e "${blue}Existing Torquio Environment Detected:${reset}"
+    echo -e "  - Distrobox Container:      $c_status"
+    echo -e "  - Wine Prefix:              $p_status"
+    echo -e "  - Core Wine Dependencies:   $d_status"
+    echo ""
+    
+    echo "An installation was detected. How would you like to proceed?"
+    echo -e "  ${wine}1)${reset} Configure Settings Only (No container or Wine rebuilding)"
+    echo -e "  ${wine}2)${reset} Re-run Windows Software Installers (MediaBay, SDA, NotePerformer)"
+    echo -e "  ${wine}3)${reset} Recreate Distrobox Container Only (Preserves Wine prefix & licenses)"
+    echo -e "  ${wine}4)${reset} Fresh Reinstallation (Deletes container & Wine prefix - LICENSES WILL BE WIPED)"
+    echo -e "  ${wine}5)${reset} Cancel and Exit"
+    echo ""
+    
+    read -p "Select an option (1-5): " choice_action
+    case "$choice_action" in
+        1)
+            ACTION="config_only"
+            ;;
+        2)
+            ACTION="reinstall_software"
+            ;;
+        3)
+            ACTION="recreate_container"
+            ;;
+        4)
+            echo ""
+            echo -e "${red}### W A R N I N G ###${reset}"
+            echo -e "⚠️  ${red}This operation will delete your WINE prefix.${reset}"
+            echo -e "⚠️  ${red}If you have not already deactivated your licenses, you will LOSE THEM.${reset}"
+            echo ""
+            read -p "Are you absolutely sure you want to perform a fresh reinstallation? [y/N]: " confirm_fresh
+            if [[ "$confirm_fresh" =~ ^[Yy]$ ]]; then
+                ACTION="install"
+                echo "Wiping existing container and prefix..."
+                distrobox rm "$TORQUIO_CONTAINER_NAME" --force || true
+                rm -rf "$TORQUIO_PREFIX_DIR"
+            else
+                echo "Cancelled."
+                exit 0
+            fi
+            ;;
+        *)
+            echo "Installation cancelled."
+            exit 0
+            ;;
+    esac
+fi
+
+# Define active phases based on selected action
+CREATE_CONTAINER=true
+BUILD_WINE=true
+SETUP_PREFIX=true
+INSTALL_SOFTWARE=true
+INTEGRATE=true
+
+if [ "$ACTION" = "config_only" ]; then
+    CREATE_CONTAINER=false
+    BUILD_WINE=false
+    SETUP_PREFIX=false
+    INSTALL_SOFTWARE=false
+elif [ "$ACTION" = "reinstall_software" ]; then
+    CREATE_CONTAINER=true
+    BUILD_WINE=true
+    SETUP_PREFIX=true
+    INSTALL_SOFTWARE=true
+elif [ "$ACTION" = "recreate_container" ]; then
+    CREATE_CONTAINER=true
+    BUILD_WINE=true
+    SETUP_PREFIX=false
+    INSTALL_SOFTWARE=false
+    # Remove existing container to force recreation
+    distrobox rm "$TORQUIO_CONTAINER_NAME" --force || true
+fi
+
+# Prerequisite Checks
+if [ "$CREATE_CONTAINER" = true ]; then
+    echo "Checking prerequisites..."
+    if ! command -v distrobox >/dev/null 2>&1; then
+        echo -e "${red}Error: distrobox is not installed.${reset}"
+        echo "Please install distrobox and either docker or podman."
+        exit 1
+    fi
+    if ! command -v docker >/dev/null 2>&1 && ! command -v podman >/dev/null 2>&1; then
+        echo -e "${red}Error: Neither docker nor podman was found.${reset}"
+        echo "Please install one of them to use with distrobox."
+        exit 1
     fi
 fi
-echo -e "${wine}=============================${reset}"
-echo ""
 
-# 3. Asset Validation
-echo "Validating installers..."
-mkdir -p "$TORQUIO_INSTALLERS_DIR"
-SEARCH_DIRS=("$TORQUIO_INSTALLERS_DIR" "$HOME/Downloads" "$PWD")
+# 2. Interactive Settings Wizard
+CUR_MANAGE=$(get_config_val "manage_graphics" "false")
+CUR_MANUAL_DPI=$(get_config_val "manual_dpi" "96")
+CUR_MATCH_PHYS=$(get_config_val "match_physical_dpi" "false")
+CUR_FREETYPE=$(get_config_val "freetype_interpreter" "40")
 
-# Find the highest versioned files across all search directories, matching the install scripts' logic
-FOUND_MEDIABAY=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "MediaBay_Installer_win64*.zip" 2>/dev/null | sort -V | tail -n 1)
-FOUND_SDA=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "Steinberg_Download_Assistant_*_Installer_win.exe" 2>/dev/null | sort -V | tail -n 1)
-FOUND_NP=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "NotePerformer-Installer-*.exe" 2>/dev/null | sort -V | tail -n 1)
-
-MISSING_MANDATORY=false
-if [ -z "$FOUND_MEDIABAY" ]; then
-    echo -e "  [${red}MISSING${reset}] Mandatory: MediaBay_Installer_win64.zip"
-    MISSING_MANDATORY=true
-fi
-if [ -z "$FOUND_SDA" ]; then
-    echo -e "  [${red}MISSING${reset}] Mandatory: Steinberg_Download_Assistant_*_Installer_win.exe"
-    MISSING_MANDATORY=true
-fi
-
-if [ "$MISSING_MANDATORY" = true ]; then
-    echo ""
-    echo -e "${red}Error: Mandatory installers were not found.${reset}"
-    echo "Please place them in $TORQUIO_INSTALLERS_DIR or ~/Downloads and run this script again."
-    exit 1
-fi
-
-echo ""
-echo -e "${gray}--- Installation Manifest ---${reset}"
-echo -e "  [${green}FOUND${reset}] Steinberg MediaBay:           ($(basename "$FOUND_MEDIABAY"))"
-echo -e "  [${green}FOUND${reset}] Steinberg Download Assistant: ($(basename "$FOUND_SDA"))"
-if [ -n "$FOUND_NP" ]; then
-    # Redact the personal user hash from the NotePerformer filename for privacy
-    NP_CLEAN_NAME=$(basename "$FOUND_NP" | sed -E 's/(NotePerformer-Installer-[0-9\.]+).*\.exe/\1-[REDACTED].exe/')
-    echo -e "  [${green}FOUND${reset}] NotePerformer (3rd Party):    ($NP_CLEAN_NAME)"
-else
-    echo -e "  [${yellow}SKIP${reset}]  NotePerformer (3rd Party):    Not Found (Skipping)"
-fi
-echo -e "${gray}-----------------------------${reset}"
-echo ""
+SET_MANAGE="$CUR_MANAGE"
+SET_MANUAL_DPI="$CUR_MANUAL_DPI"
+SET_MATCH_PHYS="$CUR_MATCH_PHYS"
+SET_FREETYPE="$CUR_FREETYPE"
+MAPPED_FOLDER_PATH=""
+IMPORT_SHORTCUTS_PATH=""
 
 if [ "$AUTO_ACCEPT" = false ]; then
-    read -p "Proceed with the installation? [Y/n]: " confirm
-    if [[ "$confirm" =~ ^[Nn]$ ]]; then
+    # Step 1: Graphics & Display scaling
+    print_wizard_banner
+    echo -e "${blue}[Step 1 of 4] Display Scaling & Graphics Management${reset}"
+    echo "--------------------------------------------------"
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        echo "X11 session detected. Automated scaling management is Wayland-Only."
+        echo "WINE natively detects host display scaling settings under X11."
+        SET_MANAGE="false"
+        SET_MATCH_PHYS="false"
+        echo ""
+        read -p "Would you like to configure a custom manual WINE prefix DPI? [y/N] (Default: N): " custom_dpi_prompt
+        if [[ "$custom_dpi_prompt" =~ ^[Yy]$ ]]; then
+            read -p "Enter custom WINE DPI (e.g. 96, 120, 144, 192) [Current: $CUR_MANUAL_DPI]: " user_dpi
+            if [[ "$user_dpi" =~ ^[0-9]+$ ]]; then
+                SET_MANUAL_DPI="$user_dpi"
+            fi
+        else
+            SET_MANUAL_DPI="$CUR_MANUAL_DPI"
+        fi
+    else
+        echo "Torquio can automatically coordinate your Wayland desktop's XWayland"
+        echo "scaling policy and Wine DPI settings for optimal rendering."
+        echo ""
+        
+        def_manage="Y"
+        if [ "$CUR_MANAGE" = "false" ]; then def_manage="N"; fi
+        read -p "Would you like Torquio to automatically manage display scaling? [Y/n] (Default: $def_manage): " auto_scaling
+        
+        if [[ -z "$auto_scaling" && "$def_manage" = "Y" ]] || [[ "$auto_scaling" =~ ^[Yy]$ ]]; then
+            SET_MANAGE="true"
+            SET_MANUAL_DPI="96"
+            
+            def_phys="N"
+            if [ "$CUR_MATCH_PHYS" = "true" ]; then def_phys="Y"; fi
+            echo ""
+            echo "Match Hardware Physical DPI matches WINE directly to your screen's EDID spec."
+            echo "(Recommended: Standard Logical Scaling - choose 'No')"
+            read -p "Enable Match Hardware Physical DPI? [y/N] (Default: $def_phys): " match_phys
+            if [[ -z "$match_phys" && "$def_phys" = "Y" ]] || [[ "$match_phys" =~ ^[Yy]$ ]]; then
+                SET_MATCH_PHYS="true"
+            else
+                SET_MATCH_PHYS="false"
+            fi
+        else
+            SET_MANAGE="false"
+            SET_MATCH_PHYS="false"
+            echo ""
+            
+            # Query current host policy
+            local host_policy="1"
+            local graphics_json=$(python3 "$SCRIPT_DIR/scripts/3-runtime_handlers/torquio_graphics.py" 2>/dev/null || true)
+            local de=$(echo "$graphics_json" | grep -o '"de": "[^"]*' | cut -d'"' -f4 || true)
+            if [ "$de" = "GNOME" ]; then
+                host_policy=$(get_xwayland_scaling_factor)
+                [ -z "$host_policy" ] && host_policy="1"
+            elif [ "$de" = "KDE" ]; then
+                host_policy=$(kreadconfig6 --file kdeglobals --group KScreen --key XwaylandClientsScale 2>/dev/null || true)
+                [ -z "$host_policy" ] && host_policy="false"
+            elif [ "$de" = "COSMIC" ]; then
+                host_policy=$(cat ~/.config/cosmic/com.system76.CosmicComp/v1/descale_xwayland 2>/dev/null || true)
+                [ -z "$host_policy" ] && host_policy="none"
+            fi
+            
+            echo "Confirm manual scaling values to be used:"
+            echo "  Wine Prefix DPI:         96 DPI"
+            echo "  XWayland Scaling Policy: $host_policy"
+            echo ""
+            read -p "Use these manual defaults? [Y/n] (Default: Y): " manual_confirm
+            if [[ "$manual_confirm" =~ ^[Nn]$ ]]; then
+                read -p "Enter custom WINE DPI (e.g. 96, 120, 144, 192) [Current: $CUR_MANUAL_DPI]: " user_dpi
+                if [[ "$user_dpi" =~ ^[0-9]+$ ]]; then
+                    SET_MANUAL_DPI="$user_dpi"
+                fi
+                
+                if [ "$de" = "GNOME" ]; then
+                    read -p "Enter manual GNOME XWayland scaling factor (1 = Framebuffer Upscale, 2 = Native scale) [Current: $host_policy]: " user_policy
+                    if [[ "$user_policy" =~ ^[0-9]+$ ]]; then
+                        if gsettings list-schemas | grep -q org.gnome.mutter.wayland; then
+                            gsettings set org.gnome.mutter.wayland xwayland-scaling-factor "$user_policy" 2>/dev/null || true
+                        else
+                            gsettings set org.gnome.mutter xwayland-scaling-factor "$user_policy" 2>/dev/null || true
+                        fi
+                        echo "Host GNOME XWayland scaling factor set to $user_policy."
+                    fi
+                elif [ "$de" = "KDE" ]; then
+                    read -p "Enter manual KDE XWayland scale policy (true = scale clients, false = scale compositor) [Current: $host_policy]: " user_policy
+                    if [[ "$user_policy" = "true" || "$user_policy" = "false" ]]; then
+                        kwriteconfig6 --file kdeglobals --group KScreen --key XwaylandClientsScale "$user_policy" 2>/dev/null || true
+                        kwriteconfig6 --file kdeglobals --group KScreen --key XwaylandClientScale "$user_policy" 2>/dev/null || true
+                        dbus-send --session --dest=org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null || true
+                        echo "Host KDE XWayland policy set to $user_policy."
+                    fi
+                elif [ "$de" = "COSMIC" ]; then
+                    read -p "Enter manual COSMIC XWayland scale policy (fractional or none) [Current: $host_policy]: " user_policy
+                    if [[ "$user_policy" = "fractional" || "$user_policy" = "none" ]]; then
+                        mkdir -p ~/.config/cosmic/com.system76.CosmicComp/v1
+                        if [ "$user_policy" = "none" ]; then
+                            rm -f ~/.config/cosmic/com.system76.CosmicComp/v1/descale_xwayland
+                        else
+                            echo "$user_policy" > ~/.config/cosmic/com.system76.CosmicComp/v1/descale_xwayland 2>/dev/null || true
+                        fi
+                        echo "Host COSMIC XWayland policy set to $user_policy."
+                    fi
+                fi
+            else
+                SET_MANUAL_DPI="96"
+            fi
+        fi
+    fi
+    
+    # Step 2: Font Hinting Style
+    print_wizard_banner
+    echo -e "${blue}[Step 2 of 4] FreeType Font Hinting Interpreter${reset}"
+    echo "--------------------------------------------------"
+    echo "Select your preferred font smoothing style:"
+    echo "  1) v40 (Thicker/bolder, standard Windows look) [Default]"
+    echo "  2) v35 (Thinner/crisper)"
+    echo ""
+    read -p "Selection (1-2) [Current: v$CUR_FREETYPE]: " choice_ft
+    case "$choice_ft" in
+        1)
+            SET_FREETYPE="40"
+            ;;
+        2)
+            SET_FREETYPE="35"
+            ;;
+        *)
+            SET_FREETYPE="$CUR_FREETYPE"
+            ;;
+    esac
+    
+    # Step 3: Project Folder Mapping
+    print_wizard_banner
+    echo -e "${blue}[Step 3 of 4] User Project Folder Mapping${reset}"
+    echo "--------------------------------------------------"
+    echo "You can map a directory on your host machine (like your music or project folder)"
+    echo "so that it appears as a network drive (e.g., D:\\, E:\\) inside the Wine prefix."
+    echo ""
+    read -p "Would you like to map a local folder to WINE? [y/N] (Default: N): " map_confirm
+    if [[ "$map_confirm" =~ ^[Yy]$ ]]; then
+        read -p "Enter the absolute path of the local folder: " map_path
+        if [ -d "$map_path" ]; then
+            MAPPED_FOLDER_PATH="$map_path"
+            echo -e "  [${green}SUCCESS${reset}] Folder path is valid. Will map during integration phase."
+        else
+            echo -e "  [${red}ERROR${reset}] Path does not exist or is not a folder. Skipping mapping."
+        fi
+        sleep 2
+    fi
+    
+    # Step 4: Keyboard Shortcuts Import
+    print_wizard_banner
+    echo -e "${blue}[Step 4 of 4] Keyboard Shortcuts Import${reset}"
+    echo "--------------------------------------------------"
+    echo "If you have a backup of your custom Dorico keyboard shortcuts (.zip or .json),"
+    echo "Torquio can automatically import them for you."
+    echo ""
+    FOUND_BACKUP=$(find "$HOME/Downloads" -maxdepth 1 -type f \( -name "torquio_keycommands_backup.zip" -o -name "keycommands_*.json" \) 2>/dev/null | head -n 1)
+    if [ -n "$FOUND_BACKUP" ]; then
+        echo -e "Detected shortcut backup at: ${wine}$(basename "$FOUND_BACKUP")${reset}"
+        read -p "Import this backup file? [Y/n] (Default: Y): " import_def
+        if [[ ! "$import_def" =~ ^[Nn]$ ]]; then
+            IMPORT_SHORTCUTS_PATH="$FOUND_BACKUP"
+        fi
+    else
+        read -p "Import custom keyboard shortcuts? [y/N] (Default: N): " import_confirm
+        if [[ "$import_confirm" =~ ^[Yy]$ ]]; then
+            read -p "Enter the path to your shortcut backup (.zip or .json): " import_path
+            if [ -f "$import_path" ]; then
+                IMPORT_SHORTCUTS_PATH="$import_path"
+                echo -e "  [${green}SUCCESS${reset}] File found. Will import during integration."
+            else
+                echo -e "  [${red}ERROR${reset}] File does not exist. Skipping import."
+            fi
+            sleep 2
+        fi
+    fi
+else
+    # Auto accept mode
+    SET_MANAGE="false"
+    SET_MANUAL_DPI="96"
+    SET_MATCH_PHYS="false"
+    SET_FREETYPE="40"
+fi
+
+# Write configurations
+set_config_val "manage_graphics" "$SET_MANAGE"
+set_config_val "manual_dpi" "$SET_MANUAL_DPI"
+set_config_val "match_physical_dpi" "$SET_MATCH_PHYS"
+set_config_val "freetype_interpreter" "$SET_FREETYPE"
+
+# Confirm Install manifest
+print_wizard_banner
+echo -e "${blue}=== Installation Manifest ===${reset}"
+echo -e "  - Graphics Management:      ${wine}$SET_MANAGE${reset}"
+echo -e "  - Target Wine DPI:          ${wine}$SET_MANUAL_DPI DPI${reset}"
+echo -e "  - Match Physical DPI:       ${wine}$SET_MATCH_PHYS${reset}"
+echo -e "  - FreeType Interpreter:     ${wine}v$SET_FREETYPE${reset}"
+if [ -n "$MAPPED_FOLDER_PATH" ]; then
+    echo -e "  - Map Local Folder:         ${wine}$MAPPED_FOLDER_PATH${reset}"
+fi
+if [ -n "$IMPORT_SHORTCUTS_PATH" ]; then
+    echo -e "  - Import Shortcuts:         ${wine}$(basename "$IMPORT_SHORTCUTS_PATH")${reset}"
+fi
+echo -e "${blue}=============================${reset}"
+echo ""
+
+# Asset Validation (SDA and MediaBay are required for software installs)
+if [ "$INSTALL_SOFTWARE" = true ]; then
+    echo "Validating installers..."
+    mkdir -p "$TORQUIO_INSTALLERS_DIR"
+    SEARCH_DIRS=("$TORQUIO_INSTALLERS_DIR" "$HOME/Downloads" "$PWD")
+    
+    FOUND_MEDIABAY=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "MediaBay_Installer_win64*.zip" 2>/dev/null | sort -V | tail -n 1)
+    FOUND_SDA=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "Steinberg_Download_Assistant_*_Installer_win.exe" 2>/dev/null | sort -V | tail -n 1)
+    FOUND_NP=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "NotePerformer-Installer-*.exe" 2>/dev/null | sort -V | tail -n 1)
+    
+    MISSING_MANDATORY=false
+    if [ -z "$FOUND_MEDIABAY" ]; then
+        echo -e "  [${red}MISSING${reset}] Mandatory: MediaBay_Installer_win64.zip"
+        MISSING_MANDATORY=true
+    fi
+    if [ -z "$FOUND_SDA" ]; then
+        echo -e "  [${red}MISSING${reset}] Mandatory: Steinberg_Download_Assistant_*_Installer_win.exe"
+        MISSING_MANDATORY=true
+    fi
+    
+    if [ "$MISSING_MANDATORY" = true ]; then
+        echo ""
+        echo -e "${red}Error: Mandatory installers were not found.${reset}"
+        echo "Please place them in $TORQUIO_INSTALLERS_DIR or ~/Downloads and run this script again."
+        exit 1
+    fi
+    echo ""
+fi
+
+if [ "$AUTO_ACCEPT" = false ]; then
+    read -p "Proceed with the wizard installation tasks? [Y/n]: " confirm_install
+    if [[ "$confirm_install" =~ ^[Nn]$ ]]; then
         echo -e "${red}Installation cancelled.${reset}"
         exit 0
     fi
 fi
 
-# 4. Container Creation
-echo "Phase 1: Creating Distrobox container ($TORQUIO_CONTAINER_NAME)..."
-if distrobox list | grep -q "$TORQUIO_CONTAINER_NAME"; then
-    echo "Container $TORQUIO_CONTAINER_NAME already exists. Skipping creation."
-else
-    distrobox create -i ubuntu:24.04 -n "$TORQUIO_CONTAINER_NAME" --yes
+# Execution of selected phases
+if [ "$CREATE_CONTAINER" = true ]; then
+    echo "Phase 1: Creating Distrobox container ($TORQUIO_CONTAINER_NAME)..."
+    if distrobox list 2>/dev/null | grep -q "$TORQUIO_CONTAINER_NAME"; then
+        echo "Container $TORQUIO_CONTAINER_NAME already exists. Skipping creation."
+    else
+        distrobox create -i ubuntu:24.04 -n "$TORQUIO_CONTAINER_NAME" --yes
+    fi
 fi
 
-# We use the absolute path to the workspace within the container. 
-# Distrobox mounts the host's current directory to the exact same path in the container.
 WORKSPACE_DIR="$SCRIPT_DIR"
 
-# 5. Engine Compilation & Installation
-echo "Phase 2: Compiling Wine Engine..."
-distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/1-build/build_wine.sh"
-
-# 6. Prefix Initialization
-echo "Phase 3: Initializing Wine Prefix..."
-distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/setup_prefix.sh"
-
-# 7. Software Component Installation
-echo "Phase 4: Installing Steinberg Components..."
-
-echo "Installing MediaBay..."
-distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/install_mediabay.sh"
-
-echo "Installing SDA..."
-distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/install_sda.sh"
-
-if [ -n "$FOUND_NP" ]; then
-    echo "Installing NotePerformer..."
-    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/install_noteperformer.sh"
+if [ "$BUILD_WINE" = true ]; then
+    echo "Phase 2: Compiling Wine Engine..."
+    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/1-build/build_wine.sh"
 fi
 
-echo "Extracting Desktop Icons..."
-distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/extract_icons.sh"
+if [ "$SETUP_PREFIX" = true ]; then
+    echo "Phase 3: Initializing Wine Prefix..."
+    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/setup_prefix.sh"
+fi
 
-# 8. Host Integration
-echo "Phase 5: Performing Host Integration..."
-mkdir -p "$HOME/.local/bin"
-rm -f "$HOME/.local/bin/torquio" "$HOME/.local/bin/torquio-dorico" "$HOME/.local/bin/torquio-sam" "$HOME/.local/bin/torquio-sda-handler"
-
-echo "Installing torquio orchestrator to ~/.local/bin/torquio..."
-ln -s "$SCRIPT_DIR/torquio" "$HOME/.local/bin/torquio"
-
-for handler in "$SCRIPT_DIR/scripts/3-runtime_handlers/"torquio*; do
-    base_name=$(basename "$handler")
-    if [ "$base_name" = "torquio-sda-handler" ]; then
-        sed "s|@TORQUIO_REPO_DIR@|$SCRIPT_DIR|g" "$handler" > "$HOME/.local/bin/$base_name"
-    else
-        cp "$handler" "$HOME/.local/bin/"
+if [ "$INSTALL_SOFTWARE" = true ]; then
+    echo "Phase 4: Installing Steinberg Components..."
+    echo "Installing MediaBay..."
+    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/install_mediabay.sh"
+    echo "Installing SDA..."
+    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/install_sda.sh"
+    if [ -n "$FOUND_NP" ]; then
+        echo "Installing NotePerformer..."
+        distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/install_noteperformer.sh"
     fi
-done
-chmod +x "$HOME/.local/bin/"torquio*
+    echo "Extracting Desktop Icons..."
+    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/extract_icons.sh"
+fi
 
-mkdir -p "$HOME/.local/share/applications"
+if [ "$INTEGRATE" = true ]; then
+    echo "Phase 5: Performing Host Integration..."
+    mkdir -p "$HOME/.local/bin"
+    rm -f "$HOME/.local/bin/torquio" "$HOME/.local/bin/torquio-dorico" "$HOME/.local/bin/torquio-sam" "$HOME/.local/bin/torquio-sda-handler"
+    
+    echo "Installing torquio orchestrator to ~/.local/bin/torquio..."
+    ln -s "$SCRIPT_DIR/torquio" "$HOME/.local/bin/torquio"
+    
+    for handler in "$SCRIPT_DIR/scripts/3-runtime_handlers/"torquio*; do
+        base_name=$(basename "$handler")
+        if [ "$base_name" = "torquio-sda-handler" ]; then
+            sed "s|@TORQUIO_REPO_DIR@|$SCRIPT_DIR|g" "$handler" > "$HOME/.local/bin/$base_name"
+        else
+            cp "$handler" "$HOME/.local/bin/"
+        fi
+    done
+    chmod +x "$HOME/.local/bin/"torquio*
+    
+    mkdir -p "$HOME/.local/share/applications"
+    echo "Registering MIME types..."
+    mkdir -p "$HOME/.local/share/mime/packages"
+    cp "$SCRIPT_DIR/desktop_stubs/application-x-dorico.xml" "$HOME/.local/share/mime/packages/"
+    update-mime-database "$HOME/.local/share/mime/" || true
+fi
 
-echo "Registering MIME types..."
-mkdir -p "$HOME/.local/share/mime/packages"
-cp "$SCRIPT_DIR/desktop_stubs/application-x-dorico.xml" "$HOME/.local/share/mime/packages/"
-update-mime-database "$HOME/.local/share/mime/"
+# Apply Mapped Folders if configured
+if [ -n "$MAPPED_FOLDER_PATH" ] && [ -d "$TORQUIO_PREFIX_DIR/dosdevices" ]; then
+    real_map_path=$(realpath "$MAPPED_FOLDER_PATH")
+    drive_letter=""
+    for letter in d e f g h i j k l m n o p q r s t u v w x y z; do
+        if [ ! -e "$TORQUIO_PREFIX_DIR/dosdevices/${letter}:" ]; then
+            drive_letter="${letter}:"
+            break
+        fi
+    done
+    if [ -n "$drive_letter" ]; then
+        ln -sf "$real_map_path" "$TORQUIO_PREFIX_DIR/dosdevices/$drive_letter"
+        echo "Mapped '$real_map_path' to Wine drive ${drive_letter^^}\\"
+    fi
+fi
+
+# Apply Keyboard Shortcuts Import if configured
+if [ -n "$IMPORT_SHORTCUTS_PATH" ] && [ -f "$IMPORT_SHORTCUTS_PATH" ]; then
+    echo "Importing keyboard shortcuts from $IMPORT_SHORTCUTS_PATH..."
+    keycommands_dir=$(find "$TORQUIO_PREFIX_DIR/drive_c/users" -type d -path "*/AppData/Roaming/Steinberg/Dorico*" 2>/dev/null | head -n 1)
+    if [ -n "$keycommands_dir" ] && [ -d "$keycommands_dir" ]; then
+        if [[ "$IMPORT_SHORTCUTS_PATH" =~ \.zip$ ]]; then
+            unzip -o "$IMPORT_SHORTCUTS_PATH" -d "$keycommands_dir" >/dev/null || true
+        else
+            cp "$IMPORT_SHORTCUTS_PATH" "$keycommands_dir/"
+        fi
+        echo "Keyboard shortcuts successfully imported!"
+    else
+        echo "Warning: Dorico AppData directory not found. Key commands could not be imported automatically."
+    fi
+fi
+
+# Apply Wine registry entries for scale parameters immediately
+if [ -d "$TORQUIO_PREFIX_DIR" ] && distrobox list 2>/dev/null | grep -q "$TORQUIO_CONTAINER_NAME"; then
+    apply_dpi="$SET_MANUAL_DPI"
+    if [ "$SET_MANAGE" = "true" ] && [ "$XDG_SESSION_TYPE" != "x11" ]; then
+        graphics_json=$(python3 "$SCRIPT_DIR/scripts/3-runtime_handlers/torquio_graphics.py" 2>/dev/null || true)
+        q_dpi=$(echo "$graphics_json" | grep -o '"target_wine_dpi": [0-9]*' | cut -d' ' -f2 || true)
+        if [ -n "$q_dpi" ] && [ "$q_dpi" -gt 0 ]; then
+            apply_dpi="$q_dpi"
+        fi
+    fi
+    echo "Applying configured Wine prefix settings immediately..."
+    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$SET_FREETYPE\"; wine reg add \"HKCU\\Control Panel\\Desktop\" /v LogPixels /t REG_DWORD /d $apply_dpi /f" >/dev/null 2>&1 || true
+    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; wineserver -k && wineserver -w" >/dev/null 2>&1 || true
+fi
+
+if [ "$ACTION" = "reinstall_software" ]; then
+    echo ""
+    echo "==========================================="
+    echo "   Software Download Phase                 "
+    echo "==========================================="
+    echo "Opening the Steinberg Download Assistant (SDA)..."
+    nohup "$HOME/.local/bin/torquio-sda-handler" > /dev/null 2>&1 &
+fi
 
 echo ""
-echo "==========================================="
-echo "   Software Download Phase                 "
-echo "==========================================="
-echo "The Steinberg Download Assistant (SDA) is now launching."
-echo "You should be able to use it as normal, including the ability to:"
-echo "1. Sign in to your Steinberg account in your browser."
-echo "2. Install Dorico and any related components."
-echo "We recommend using the 'Download All' option." 
-echo ""
-echo "Opening the Download Assistant..."
-
-# Run the handler in the background so the terminal is not blocked
-nohup "$HOME/.local/bin/torquio-sda-handler" > /dev/null 2>&1 &
-
-echo ""
-echo "==========================================="
-echo "   Torquio Core Setup Complete!            "
-echo "==========================================="
-echo "You can close this terminal window at any time. Once the "
-echo "various components have been installed, remember to run the"
-echo "Activation Manager to activate your license."
-echo "Happy notating!"
-echo "==========================================="
+echo "================================================================"
+echo "               Torquio Setup Wizard Complete!                   "
+echo "================================================================"
+echo "All interactive wizard installation tasks completed successfully."
+echo "================================================================"
 echo ""
