@@ -134,12 +134,16 @@ Depending on how your Desktop Environment scales legacy X11/XWayland application
 
 *   **For GNOME (or other Mutter-based environments using Framebuffer Upscaling)**: 
     Disabling native XWayland scaling (`xwayland-scaling-factor=1`) forces the app to render at 100% and lets the compositor upscale the window. To prevent text from appearing too large when scaled up, the internal WINE DPI is scaled down proportionally to compensate:  
+      
     $$\text{Target WINE DPI} = \frac{\text{Monitor Physical DPI}}{\text{Desktop Environment Scale Factor}}$$  
+      
     *(e.g., 144 physical ideal DPI / 1.50x desktop scale = 96 target DPI)*
 
 *   **For KDE Plasma / COSMIC (or other environments supporting Native Application Scaling)**:
     Allowing applications to scale themselves bypasses compositor upscaling. The window renders native 1:1, and WINE scales its own UI elements directly:  
+      
     $$\text{Target WINE DPI} = \text{Monitor Physical DPI}$$  
+      
     *(e.g., 144 physical ideal DPI = 144 target DPI)*
 
 ### Manual Configuration for Other Desktops
