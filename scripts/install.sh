@@ -53,6 +53,11 @@ if [ -f "$TORQUIO_PREFIX_DIR/.torquio_core_installed" ]; then
     CORE_INSTALLED=true
 fi
 
+PARTIAL_INSTALL=false
+if { [ "$CONTAINER_EXISTS" = true ] || [ "$PREFIX_EXISTS" = true ]; } && [ "$CORE_INSTALLED" = false ]; then
+    PARTIAL_INSTALL=true
+fi
+
 ACTION="install"
 RUN_WIZARD=true
 
@@ -78,47 +83,90 @@ if [ "$AUTO_ACCEPT" = false ] && { [ "$CONTAINER_EXISTS" = true ] || [ "$PREFIX_
     echo -e "  - Core Wine Dependencies:   $d_status"
     echo ""
     
-    echo "An installation was detected. How would you like to proceed?"
-    echo -e "  ${wine}1)${reset} Configure Settings Only (No container or Wine rebuilding)"
-    echo -e "  ${wine}2)${reset} Re-run Windows Software Installers (MediaBay, SDA, NotePerformer)"
-    echo -e "  ${wine}3)${reset} Recreate Distrobox Container Only (Preserves Wine prefix & licenses)"
-    echo -e "  ${wine}4)${reset} Fresh Reinstallation (Deletes container & Wine prefix - LICENSES WILL BE WIPED)"
-    echo -e "  ${wine}5)${reset} Cancel and Exit"
-    echo ""
-    
-    read -p "Select an option (1-5): " choice_action
-    case "$choice_action" in
-        1)
-            ACTION="config_only"
-            ;;
-        2)
-            ACTION="reinstall_software"
-            ;;
-        3)
-            ACTION="recreate_container"
-            ;;
-        4)
-            echo ""
-            echo -e "${red}### W A R N I N G ###${reset}"
-            echo -e "⚠️  ${red}This operation will delete your WINE prefix.${reset}"
-            echo -e "⚠️  ${red}If you have not already deactivated your licenses, you will LOSE THEM.${reset}"
-            echo ""
-            read -p "Are you absolutely sure you want to perform a fresh reinstallation? [y/N]: " confirm_fresh
-            if [[ "$confirm_fresh" =~ ^[Yy]$ ]]; then
-                ACTION="install"
-                echo "Wiping existing container and prefix..."
-                distrobox rm "$TORQUIO_CONTAINER_NAME" --force || true
-                rm -rf "$TORQUIO_PREFIX_DIR"
-            else
-                echo "Cancelled."
+    if [ "$PARTIAL_INSTALL" = true ]; then
+        echo -e "${yellow}⚠️  PARTIAL INSTALLATION DETECTED:${reset}"
+        echo "  Some setup steps did not complete successfully during the previous run."
+        echo "  It is completely safe to resume; Torquio will skip already completed"
+        echo "  phases (like container creation or Wine compilation) and resume building"
+        echo "  the missing pieces."
+        echo ""
+        echo "How would you like to proceed?"
+        echo -e "  ${wine}1)${reset} Resume / Repair Incomplete Installation (Recommended)"
+        echo -e "  ${wine}2)${reset} Fresh Reinstallation (Deletes container & Wine prefix)"
+        echo -e "  ${wine}3)${reset} Cancel and Exit"
+        echo ""
+        
+        read -p "Select an option (1-3): " choice_action
+        case "$choice_action" in
+            1)
+                ACTION="resume"
+                ;;
+            2)
+                echo ""
+                echo -e "${red}### W A R N I N G ###${reset}"
+                echo -e "⚠️  ${red}This operation will delete your WINE prefix.${reset}"
+                echo -e "⚠️  ${red}If you have somehow managed to activate any licenses, you will LOSE THEM.${reset}"
+                echo -e "⚠️  ${red}If so, please deactivate them now.${reset}"
+                echo ""
+                read -p "Are you sure you want to perform a fresh reinstallation? [y/N]: " confirm_fresh
+                if [[ "$confirm_fresh" =~ ^[Yy]$ ]]; then
+                    ACTION="install"
+                    echo "Wiping existing container and prefix..."
+                    distrobox rm "$TORQUIO_CONTAINER_NAME" --force || true
+                    rm -rf "$TORQUIO_PREFIX_DIR"
+                else
+                    echo "Cancelled."
+                    exit 0
+                fi
+                ;;
+            *)
+                echo "Installation cancelled."
                 exit 0
-            fi
-            ;;
-        *)
-            echo "Installation cancelled."
-            exit 0
-            ;;
-    esac
+                ;;
+        esac
+    else
+        echo "An existing installation was detected. How would you like to proceed?"
+        echo -e "  ${wine}1)${reset} Configure Settings Only (No container or Wine rebuilding)"
+        echo -e "  ${wine}2)${reset} Re-run Windows Software Installers (MediaBay, SDA, NotePerformer)"
+        echo -e "  ${wine}3)${reset} Recreate Distrobox Container Only (Preserves Wine prefix & licenses)"
+        echo -e "  ${wine}4)${reset} Fresh Reinstallation (Deletes container & Wine prefix - LICENSES WILL BE WIPED)"
+        echo -e "  ${wine}5)${reset} Cancel and Exit"
+        echo ""
+        
+        read -p "Select an option (1-5): " choice_action
+        case "$choice_action" in
+            1)
+                ACTION="config_only"
+                ;;
+            2)
+                ACTION="reinstall_software"
+                ;;
+            3)
+                ACTION="recreate_container"
+                ;;
+            4)
+                echo ""
+                echo -e "${red}### W A R N I N G ###${reset}"
+                echo -e "⚠️  ${red}This operation will delete your WINE prefix.${reset}"
+                echo -e "⚠️  ${red}If you have not already deactivated your licenses, you will LOSE THEM.${reset}"
+                echo ""
+                read -p "Are you absolutely sure you want to perform a fresh reinstallation? [y/N]: " confirm_fresh
+                if [[ "$confirm_fresh" =~ ^[Yy]$ ]]; then
+                    ACTION="install"
+                    echo "Wiping existing container and prefix..."
+                    distrobox rm "$TORQUIO_CONTAINER_NAME" --force || true
+                    rm -rf "$TORQUIO_PREFIX_DIR"
+                else
+                    echo "Cancelled."
+                    exit 0
+                fi
+                ;;
+            *)
+                echo "Installation cancelled."
+                exit 0
+                ;;
+        esac
+    fi
 fi
 
 # Define active phases based on selected action
@@ -145,6 +193,11 @@ elif [ "$ACTION" = "recreate_container" ]; then
     INSTALL_SOFTWARE=false
     # Remove existing container to force recreation
     distrobox rm "$TORQUIO_CONTAINER_NAME" --force || true
+elif [ "$ACTION" = "resume" ]; then
+    CREATE_CONTAINER=true
+    BUILD_WINE=true
+    SETUP_PREFIX=true
+    INSTALL_SOFTWARE=true
 fi
 
 # Prerequisite Checks
