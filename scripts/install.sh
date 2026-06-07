@@ -239,7 +239,7 @@ if [ "$AUTO_ACCEPT" = false ]; then
         SET_MANAGE="false"
         SET_MATCH_PHYS="false"
         echo ""
-        read -p "Would you like to configure a custom manual WINE prefix DPI? [y/N] (Default: N): " custom_dpi_prompt
+        read -p "Would you like to configure a custom manual WINE prefix DPI? [y/N]: " custom_dpi_prompt
         if [[ "$custom_dpi_prompt" =~ ^[Yy]$ ]]; then
             read -p "Enter custom WINE DPI (e.g. 96, 120, 144, 192) [Current: $CUR_MANUAL_DPI]: " user_dpi
             if [[ "$user_dpi" =~ ^[0-9]+$ ]]; then
@@ -255,7 +255,9 @@ if [ "$AUTO_ACCEPT" = false ]; then
         
         def_manage="Y"
         if [ "$CUR_MANAGE" = "false" ]; then def_manage="N"; fi
-        read -p "Would you like Torquio to automatically manage display scaling? [Y/n] (Default: $def_manage): " auto_scaling
+        manage_bracket="[Y/n]"
+        if [ "$def_manage" = "N" ]; then manage_bracket="[y/N]"; fi
+        read -p "Would you like Torquio to automatically manage display scaling? $manage_bracket: " auto_scaling
         
         if [[ -z "$auto_scaling" && "$def_manage" = "Y" ]] || [[ "$auto_scaling" =~ ^[Yy]$ ]]; then
             SET_MANAGE="true"
@@ -263,10 +265,12 @@ if [ "$AUTO_ACCEPT" = false ]; then
             
             def_phys="N"
             if [ "$CUR_MATCH_PHYS" = "true" ]; then def_phys="Y"; fi
+            phys_bracket="[y/N]"
+            if [ "$def_phys" = "Y" ]; then phys_bracket="[Y/n]"; fi
             echo ""
             echo "Match Hardware Physical DPI matches WINE directly to your screen's EDID spec."
             echo "(Recommended: Standard Logical Scaling - choose 'No')"
-            read -p "Enable Match Hardware Physical DPI? [y/N] (Default: $def_phys): " match_phys
+            read -p "Enable Match Hardware Physical DPI? $phys_bracket: " match_phys
             if [[ -z "$match_phys" && "$def_phys" = "Y" ]] || [[ "$match_phys" =~ ^[Yy]$ ]]; then
                 SET_MATCH_PHYS="true"
             else
@@ -278,9 +282,9 @@ if [ "$AUTO_ACCEPT" = false ]; then
             echo ""
             
             # Query current host policy
-            local host_policy="1"
-            local graphics_json=$(python3 "$SCRIPT_DIR/scripts/3-runtime_handlers/torquio_graphics.py" 2>/dev/null || true)
-            local de=$(echo "$graphics_json" | grep -o '"de": "[^"]*' | cut -d'"' -f4 || true)
+            host_policy="1"
+            graphics_json=$(python3 "$SCRIPT_DIR/scripts/3-runtime_handlers/torquio_graphics.py" 2>/dev/null || true)
+            de=$(echo "$graphics_json" | grep -o '"de": "[^"]*' | cut -d'"' -f4 || true)
             if [ "$de" = "GNOME" ]; then
                 host_policy=$(get_xwayland_scaling_factor)
                 [ -z "$host_policy" ] && host_policy="1"
@@ -292,11 +296,25 @@ if [ "$AUTO_ACCEPT" = false ]; then
                 [ -z "$host_policy" ] && host_policy="none"
             fi
             
+            # Query recommendations
+            rec_policy=$(echo "$graphics_json" | grep -o '"ideal_xwayland_policy": "[^"]*' | cut -d'"' -f4 || true)
+            rec_dpi=$(echo "$graphics_json" | grep -o '"target_wine_dpi": [0-9]*' | cut -d' ' -f2 || true)
+            rec_formula=$(echo "$graphics_json" | grep -o '"rec_formula": "[^"]*' | cut -d'"' -f4 || true)
+            if [ "$de" = "KDE" ]; then
+                rec_policy="[KDE] Scale XWayland clients themselves (XwaylandClientsScale=true)"
+            elif [ "$de" = "COSMIC" ]; then
+                rec_policy="[COSMIC] Optimize for Games (fractional)"
+            fi
+            
             echo "Confirm manual scaling values to be used:"
-            echo "  Wine Prefix DPI:         96 DPI"
-            echo "  XWayland Scaling Policy: $host_policy"
+            echo -e "  Wine Prefix DPI:         ${wine}96 DPI${reset}"
+            echo -e "  XWayland Scaling Policy: ${wine}$host_policy${reset}"
             echo ""
-            read -p "Use these manual defaults? [Y/n] (Default: Y): " manual_confirm
+            echo -e "${blue}Torquio Recommendations for this Monitor:${reset}"
+            echo -e "  Recommended Wine DPI:    ${green}${rec_dpi:-96} DPI${reset} (${rec_formula:-Standard 96 DPI baseline})"
+            echo -e "  Recommended XWayland:    ${green}${rec_policy:-N/A}${reset}"
+            echo ""
+            read -p "Use these manual defaults? [Y/n]: " manual_confirm
             if [[ "$manual_confirm" =~ ^[Nn]$ ]]; then
                 read -p "Enter custom WINE DPI (e.g. 96, 120, 144, 192) [Current: $CUR_MANUAL_DPI]: " user_dpi
                 if [[ "$user_dpi" =~ ^[0-9]+$ ]]; then
@@ -344,8 +362,8 @@ if [ "$AUTO_ACCEPT" = false ]; then
     echo -e "${blue}[Step 2 of 4] FreeType Font Hinting Interpreter${reset}"
     echo "--------------------------------------------------"
     echo "Select your preferred font smoothing style:"
-    echo "  1) v40 (Thicker/bolder, standard Windows look) [Default]"
-    echo "  2) v35 (Thinner/crisper)"
+    echo "  1) v40 (Thicker/bolder, but some fonts can look smudgey) [Default]"
+    echo "  2) v35 (Thinner/crisper, but some fonts can look anemic)"
     echo ""
     read -p "Selection (1-2) [Current: v$CUR_FREETYPE]: " choice_ft
     case "$choice_ft" in
@@ -367,9 +385,20 @@ if [ "$AUTO_ACCEPT" = false ]; then
     echo "You can map a directory on your host machine (like your music or project folder)"
     echo "so that it appears as a network drive (e.g., D:\\, E:\\) inside the Wine prefix."
     echo ""
-    read -p "Would you like to map a local folder to WINE? [y/N] (Default: N): " map_confirm
-    if [[ "$map_confirm" =~ ^[Yy]$ ]]; then
-        read -p "Enter the absolute path of the local folder: " map_path
+    read -p "Would you like to map a local folder to WINE? [Y/n]: " map_confirm
+    if [[ -z "$map_confirm" ]] || [[ "$map_confirm" =~ ^[Yy]$ ]]; then
+        map_path=""
+        if [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; then
+            if command -v zenity >/dev/null 2>&1; then
+                map_path=$(zenity --file-selection --directory --title="Select Folder to Map" 2>/dev/null) || true
+            elif command -v kdialog >/dev/null 2>&1; then
+                map_path=$(kdialog --getexistingdirectory --title="Select Folder to Map" 2>/dev/null) || true
+            fi
+        fi
+        if [ -z "$map_path" ]; then
+            read -p "Enter the absolute path of the local folder: " map_path
+        fi
+        
         if [ -d "$map_path" ]; then
             MAPPED_FOLDER_PATH="$map_path"
             echo -e "  [${green}SUCCESS${reset}] Folder path is valid. Will map during integration phase."
@@ -389,14 +418,49 @@ if [ "$AUTO_ACCEPT" = false ]; then
     FOUND_BACKUP=$(find "$HOME/Downloads" -maxdepth 1 -type f \( -name "torquio_keycommands_backup.zip" -o -name "keycommands_*.json" \) 2>/dev/null | head -n 1)
     if [ -n "$FOUND_BACKUP" ]; then
         echo -e "Detected shortcut backup at: ${wine}$(basename "$FOUND_BACKUP")${reset}"
-        read -p "Import this backup file? [Y/n] (Default: Y): " import_def
+        read -p "Import this backup file? [Y/n]: " import_def
         if [[ ! "$import_def" =~ ^[Nn]$ ]]; then
             IMPORT_SHORTCUTS_PATH="$FOUND_BACKUP"
+        else
+            # User rejected the auto-detected one, so ask if they want to browse for another one
+            read -p "Import custom keyboard shortcuts? [y/N]: " import_confirm
+            if [[ "$import_confirm" =~ ^[Yy]$ ]]; then
+                import_path=""
+                if [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; then
+                    if command -v zenity >/dev/null 2>&1; then
+                        import_path=$(zenity --file-selection --file-filter="Backup (*.zip *.json) | *.zip *.json" --title="Select Key Commands Backup File" 2>/dev/null) || true
+                    elif command -v kdialog >/dev/null 2>&1; then
+                        import_path=$(kdialog --getopenfilename "$HOME/Downloads" "*.zip *.json" --title="Select Key Commands Backup File" 2>/dev/null) || true
+                    fi
+                fi
+                if [ -z "$import_path" ]; then
+                    read -p "Enter the path to your shortcut backup (.zip or .json): " import_path
+                fi
+                
+                if [ -f "$import_path" ]; then
+                    IMPORT_SHORTCUTS_PATH="$import_path"
+                    echo -e "  [${green}SUCCESS${reset}] File found. Will import during integration."
+                else
+                    echo -e "  [${red}ERROR${reset}] File does not exist. Skipping import."
+                fi
+                sleep 2
+            fi
         fi
     else
-        read -p "Import custom keyboard shortcuts? [y/N] (Default: N): " import_confirm
+        read -p "Import custom keyboard shortcuts? [y/N]: " import_confirm
         if [[ "$import_confirm" =~ ^[Yy]$ ]]; then
-            read -p "Enter the path to your shortcut backup (.zip or .json): " import_path
+            import_path=""
+            if [ -n "$DISPLAY" ] || [ -n "$WAYLAND_DISPLAY" ]; then
+                if command -v zenity >/dev/null 2>&1; then
+                    import_path=$(zenity --file-selection --file-filter="Backup (*.zip *.json) | *.zip *.json" --title="Select Key Commands Backup File" 2>/dev/null) || true
+                elif command -v kdialog >/dev/null 2>&1; then
+                    import_path=$(kdialog --getopenfilename "$HOME/Downloads" "*.zip *.json" --title="Select Key Commands Backup File" 2>/dev/null) || true
+                fi
+            fi
+            if [ -z "$import_path" ]; then
+                read -p "Enter the path to your shortcut backup (.zip or .json): " import_path
+            fi
+            
             if [ -f "$import_path" ]; then
                 IMPORT_SHORTCUTS_PATH="$import_path"
                 echo -e "  [${green}SUCCESS${reset}] File found. Will import during integration."

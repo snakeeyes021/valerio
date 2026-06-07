@@ -75,3 +75,11 @@ json.dump(d, open(f, 'w'), indent=4)
 " 2>/dev/null || true
 }
 
+get_xwayland_scaling_factor() {
+    local val=$(gsettings get org.gnome.mutter.wayland xwayland-scaling-factor 2>/dev/null | awk '{print $NF}')
+    if [ -z "$val" ]; then
+        val=$(gsettings get org.gnome.mutter xwayland-scaling-factor 2>/dev/null | awk '{print $NF}')
+    fi
+    echo "$val" | tr -d ' ' | cut -d'.' -f1 | tr -cd '0-9'
+}
+
