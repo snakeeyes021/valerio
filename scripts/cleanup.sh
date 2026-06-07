@@ -31,19 +31,19 @@ read -p "Have you deactivated your license(s)? (y/N): " confirm
 
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
     echo "Cleanup cancelled."
-    exit 0
+    exit 10
 fi
 read -p "Have you backed up any Dorico projects you were keeping in the data directory? (y/N): " confirm
 
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
     echo "Cleanup cancelled."
-    exit 0
+    exit 10
 fi
 read -p "If you have read the above warning and would like to proceed, type 'yes, permanently delete everything' to continue: " confirm
 
 if [[ "$confirm" != "yes, permanently delete everything" ]]; then
     echo "Confirmation failed. Cleanup cancelled."
-    exit 0
+    exit 10
 fi
 
 # Scaling Restore Prompts

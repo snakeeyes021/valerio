@@ -1285,7 +1285,20 @@ show_menu() {
                         fi
                     fi
                     ;;
-                2)  "$SCRIPT_DIR/scripts/cleanup.sh" ;;
+                2)
+                    if "$SCRIPT_DIR/scripts/cleanup.sh"; then
+                        clear
+                        continue
+                    else
+                        local rc=$?
+                        if [ $rc -eq 10 ]; then
+                            clear
+                            continue
+                        else
+                            exit $rc
+                        fi
+                    fi
+                    ;;
                 3)  show_status ;;
                 4)  configure_graphics; clear; continue ;;
                 5)  distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$SCRIPT_DIR\" && ./scripts/2-install/extract_icons.sh" ;;
@@ -1317,7 +1330,20 @@ show_menu() {
                         fi
                     fi
                     ;;
-                2)  "$SCRIPT_DIR/scripts/cleanup.sh" ;;
+                2)
+                    if "$SCRIPT_DIR/scripts/cleanup.sh"; then
+                        clear
+                        continue
+                    else
+                        local rc=$?
+                        if [ $rc -eq 10 ]; then
+                            clear
+                            continue
+                        else
+                            exit $rc
+                        fi
+                    fi
+                    ;;
                 3)  show_status ;;
                 4)  exit 0 ;;
                 *)  echo "Invalid option. Please choose 1-4." ;;

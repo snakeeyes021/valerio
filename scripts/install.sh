@@ -102,21 +102,16 @@ if [ "$AUTO_ACCEPT" = false ] && { [ "$CONTAINER_EXISTS" = true ] || [ "$PREFIX_
                 ACTION="resume"
                 ;;
             2)
-                echo ""
-                echo -e "${red}### W A R N I N G ###${reset}"
-                echo -e "⚠️  ${red}This operation will delete your WINE prefix.${reset}"
-                echo -e "⚠️  ${red}If you have somehow managed to activate any licenses, you will LOSE THEM.${reset}"
-                echo -e "⚠️  ${red}If so, please deactivate them now.${reset}"
-                echo ""
-                read -p "Are you sure you want to perform a fresh reinstallation? [y/N]: " confirm_fresh
-                if [[ "$confirm_fresh" =~ ^[Yy]$ ]]; then
+                if "$SCRIPT_DIR/scripts/cleanup.sh"; then
                     ACTION="install"
-                    echo "Wiping existing container and prefix..."
-                    distrobox rm "$TORQUIO_CONTAINER_NAME" --force || true
-                    rm -rf "$TORQUIO_PREFIX_DIR"
                 else
-                    echo "Cancelled."
-                    exit 10
+                    rc=$?
+                    if [ $rc -eq 10 ]; then
+                        echo "Cancelled."
+                        exit 10
+                    else
+                        exit $rc
+                    fi
                 fi
                 ;;
             *)
@@ -129,7 +124,7 @@ if [ "$AUTO_ACCEPT" = false ] && { [ "$CONTAINER_EXISTS" = true ] || [ "$PREFIX_
         echo -e "  ${wine}1)${reset} Configure Settings Only (No container or Wine rebuilding)"
         echo -e "  ${wine}2)${reset} Re-run Windows Software Installers (MediaBay, SDA, NotePerformer)"
         echo -e "  ${wine}3)${reset} Recreate Distrobox Container Only (Preserves Wine prefix & licenses)"
-        echo -e "  ${wine}4)${reset} Fresh Reinstallation (Deletes container & Wine prefix - LICENSES WILL BE WIPED)"
+        echo -e "  ${wine}4)${reset} Fresh Reinstallation (Deletes container & Wine prefix)"
         echo -e "  ${wine}5)${reset} Cancel and Exit"
         echo ""
         
@@ -145,20 +140,16 @@ if [ "$AUTO_ACCEPT" = false ] && { [ "$CONTAINER_EXISTS" = true ] || [ "$PREFIX_
                 ACTION="recreate_container"
                 ;;
             4)
-                echo ""
-                echo -e "${red}### W A R N I N G ###${reset}"
-                echo -e "⚠️  ${red}This operation will delete your WINE prefix.${reset}"
-                echo -e "⚠️  ${red}If you have not already deactivated your licenses, you will LOSE THEM.${reset}"
-                echo ""
-                read -p "Are you absolutely sure you want to perform a fresh reinstallation? [y/N]: " confirm_fresh
-                if [[ "$confirm_fresh" =~ ^[Yy]$ ]]; then
+                if "$SCRIPT_DIR/scripts/cleanup.sh"; then
                     ACTION="install"
-                    echo "Wiping existing container and prefix..."
-                    distrobox rm "$TORQUIO_CONTAINER_NAME" --force || true
-                    rm -rf "$TORQUIO_PREFIX_DIR"
                 else
-                    echo "Cancelled."
-                    exit 10
+                    rc=$?
+                    if [ $rc -eq 10 ]; then
+                        echo "Cancelled."
+                        exit 10
+                    else
+                        exit $rc
+                    fi
                 fi
                 ;;
             *)
