@@ -92,6 +92,9 @@ apply_graphics_settings() {
     echo "Applying graphics settings to Wine prefix..."
     
     local manage_graphics=$(get_config_val "manage_graphics" "false")
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        manage_graphics="false"
+    fi
     local manual_dpi=$(get_config_val "manual_dpi" "96")
     local ft_int=$(get_config_val "freetype_interpreter" "40")
     local dpi_to_set="$manual_dpi"
@@ -211,8 +214,18 @@ show_graphics_diagnostics() {
     local cur_manage=$(get_config_val "manage_graphics" "false")
     local ft_int=$(get_config_val "freetype_interpreter" "40")
     local mode_str="Manual Mode"
-    if [ "${cur_manage,,}" = "true" ] || [ "$cur_manage" = "1" ]; then
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        mode_str="N/A (Wayland Only)"
+    elif [ "${cur_manage,,}" = "true" ] || [ "$cur_manage" = "1" ]; then
         mode_str="Automated Mode"
+    fi
+
+    local match_phys=$(get_config_val "match_physical_dpi" "false")
+    local match_phys_str="Off"
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        match_phys_str="N/A (Wayland Only)"
+    elif [ "${match_phys,,}" = "true" ] || [ "$match_phys" = "1" ]; then
+        match_phys_str="On"
     fi
 
     echo -e "${blue}=== Torquio Graphics Status & Diagnostics ===${reset}"
@@ -236,7 +249,7 @@ show_graphics_diagnostics() {
     echo -e "  ${blue}[Current System Values]${reset}"
     
     local sys_policy="Unknown"
-    if [[ "$de" =~ X11 ]]; then
+    if [[ "$de" =~ X11 ]] || [ "$XDG_SESSION_TYPE" = "x11" ]; then
         sys_policy="N/A (Native X11 Session)"
 
     elif [ "$de" = "GNOME" ]; then
@@ -270,39 +283,33 @@ show_graphics_diagnostics() {
     fi
 
     local current_wine_dpi=$(get_wine_prefix_dpi)
-    echo -e "  - Graphics Management:       ${wine}${mode_str}${reset}"
-    echo -e "  - XWayland Policy:           ${wine}${sys_policy}${reset}"
-    echo -e "  - Wine Prefix DPI:           ${wine}${current_wine_dpi} DPI${reset}"
-    echo -e "  - FreeType Interpreter:      ${wine}v${ft_int}${reset}"
+
+    echo -e "  - Graphics Management:         ${wine}${mode_str}${reset}"
+    echo -e "  - Match Physical DPI:          ${wine}${match_phys_str}${reset}"
+    echo -e "  - XWayland Policy:             ${wine}${sys_policy}${reset}"
+    echo -e "  - Wine Prefix DPI:             ${wine}${current_wine_dpi} DPI${reset}"
+    echo -e "  - FreeType Interpreter:        ${wine}v${ft_int}${reset}"
     echo ""
 
     echo -e "  ${blue}[Torquio Recommendations for this Monitor]${reset}"
-    if [ -n "$supported" ]; then
-        local rec_policy="Unknown"
-        local rec_formula="No formula"
-        local ideal_policy=$(echo "$graphics_json" | grep -o '"ideal_xwayland_policy": "[^"]*' | cut -d'"' -f4)
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        echo -e "  - Recommended XWayland Policy: ${green}N/A (Scaling handled natively by X11)${reset}"
+        echo -e "  - Recommended Wine DPI:        ${green}96 DPI${reset} (Formula: Handled natively by X11)"
+    elif [ -n "$supported" ]; then
+        local rec_policy=$(echo "$graphics_json" | grep -o '"ideal_xwayland_policy": "[^"]*' | cut -d'"' -f4)
+        local rec_formula=$(echo "$graphics_json" | grep -o '"rec_formula": "[^"]*' | cut -d'"' -f4)
         if [[ "$de" =~ X11 ]]; then
             rec_policy="N/A (Native X11 Session)"
-            rec_formula="Formula: WINE DPI matches physical ideal DPI (${phys_dpi} DPI)"
-        elif [ "$de" = "GNOME" ]; then
-            rec_policy="$ideal_policy"
-            if [[ "$scale" =~ ^[0-9]+(\.0+)?$ ]]; then
-                rec_formula="Formula: WINE DPI matches physical ideal DPI (${target_dpi} DPI)"
-            else
-                rec_formula="Formula: ${phys_dpi} physical ideal DPI / ${scale}x GNOME upscale = ${target_dpi} target DPI"
-            fi
         elif [ "$de" = "KDE" ]; then
             rec_policy="[KDE] Scale XWayland clients themselves (XwaylandClientsScale=true)"
-            rec_formula="Formula: ${phys_dpi} physical ideal DPI (Scale XWayland clients themselves)"
         elif [ "$de" = "COSMIC" ]; then
             rec_policy="[COSMIC] Optimize for Games (fractional)"
-            rec_formula="Formula: ${phys_dpi} physical ideal DPI (Scale XWayland clients themselves)"
         fi
-        echo -e "  - Ideal XWayland Policy:     ${green}${rec_policy}${reset}"
-        echo -e "  - Ideal Wine Prefix DPI:     ${green}${target_dpi} DPI${reset} (${rec_formula})"
+        echo -e "  - Recommended XWayland Policy: ${green}${rec_policy}${reset}"
+        echo -e "  - Recommended Wine DPI:        ${green}${target_dpi} DPI${reset} (${rec_formula})"
     else
-        echo -e "  - Ideal XWayland Policy:     ${red}Unsupported DE (Manual management required)${reset}"
-        echo -e "  - Ideal Wine Prefix DPI:     ${red}Unsupported DE (Manual management required)${reset}"
+        echo -e "  - Recommended XWayland Policy: ${red}Unsupported DE (Manual management required)${reset}"
+        echo -e "  - Recommended Wine DPI:        ${red}Unsupported DE (Manual management required)${reset}"
     fi
     echo ""
 
@@ -362,6 +369,13 @@ configure_graphics() {
     echo -e "  ${wine}${count})${reset} FreeType Hinting Interpreter"
     local opt_interpreter=$count
     
+    local opt_match_physical=0
+    if [ "$XDG_SESSION_TYPE" != "x11" ]; then
+        count=$((count+1))
+        echo -e "  ${wine}${count})${reset} Match Hardware Physical DPI"
+        opt_match_physical=$count
+    fi
+    
     count=$((count+1))
     echo -e "  ${wine}${count})${reset} [Back to main menu]"
     local opt_back=$count
@@ -369,6 +383,14 @@ configure_graphics() {
  
     read -p "Select an option to toggle/change (1-$count): " opt
     if [ "$opt" = "$opt_manage" ]; then
+        if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+            echo -e "${red}Error: Automated Graphics Management is a Wayland-Only feature.${reset}"
+            echo "Under X11, WINE natively detects and applies host display scaling settings."
+            echo ""
+            read -p "Press [Enter] to continue..." temp
+            configure_graphics
+            return
+        fi
         if [ -z "$supported" ]; then
             echo "Automated XWayland Management is not supported on your Desktop Environment. Please see the recommendations in the graphics configuration page to assist in manually managing your display and scaling settings."
             echo ""
@@ -529,6 +551,56 @@ configure_graphics() {
                 ;;
         esac
         configure_graphics
+    elif [ "$opt" = "$opt_match_physical" ]; then
+        clear
+        local match_phys=$(get_config_val "match_physical_dpi" "false")
+        local match_phys_str="Off"
+        if [ "${match_phys,,}" = "true" ] || [ "$match_phys" = "1" ]; then
+            match_phys_str="On"
+        fi
+        
+        echo -e "${blue}================================================================${reset}"
+        echo -e "          ${wine}Match Hardware Physical DPI${reset}"
+        echo -e "${blue}================================================================${reset}"
+        echo ""
+        echo "By default, Torquio uses a standard 96 DPI logical baseline as"
+        echo "the anchor for scaling calculations. This mirrors standard OS"
+        echo "scaling, where logical DPI scales linearly (e.g. 150% = 144 DPI)."
+        echo ""
+        echo "Alternatively, you can choose to match your monitor's exact"
+        echo "hardware physical DPI (e.g. 161 DPI). This may be desirable if"
+        echo "you prefer a slightly different scale in Dorico to compensate for"
+        echo "the physical size of your screen."
+        echo ""
+        echo -e "Currently, Match Hardware Physical DPI is: ${wine}${match_phys_str}${reset}"
+        echo -e "${blue}================================================================${reset}"
+        echo ""
+        
+        if [ "$match_phys_str" = "Off" ]; then
+            read -p "Do you want to enable matching hardware physical DPI? [y/N]: " confirm_toggle
+            if [[ "$confirm_toggle" =~ ^[Yy]$ ]]; then
+                set_config_val "match_physical_dpi" "true"
+                echo "Match Hardware Physical DPI enabled."
+                if [ "${cur_manage,,}" = "true" ] || [ "$cur_manage" = "1" ]; then
+                    apply_graphics_settings
+                fi
+            else
+                echo "No changes made."
+            fi
+        else
+            read -p "Do you want to disable matching hardware physical DPI? [y/N]: " confirm_toggle
+            if [[ "$confirm_toggle" =~ ^[Yy]$ ]]; then
+                set_config_val "match_physical_dpi" "false"
+                echo "Match Hardware Physical DPI disabled."
+                if [ "${cur_manage,,}" = "true" ] || [ "$cur_manage" = "1" ]; then
+                    apply_graphics_settings
+                fi
+            else
+                echo "No changes made."
+            fi
+        fi
+        read -p "Press [Enter] to continue..." temp
+        configure_graphics
     else
         return 0
     fi
@@ -578,11 +650,21 @@ show_status() {
     local manage_graphics=$(get_config_val "manage_graphics" "false")
     local freetype_interp=$(get_config_val "freetype_interpreter" "40")
     local manage_str="Off"
-    if [ "${manage_graphics,,}" = "true" ] || [ "$manage_graphics" = "1" ]; then
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        manage_str="N/A (Wayland Only)"
+    elif [ "${manage_graphics,,}" = "true" ] || [ "$manage_graphics" = "1" ]; then
         manage_str="On"
     fi
-    echo -e "  - Auto Manage Graphics:  ${wine}$manage_str${reset}"
-    echo -e "  - FreeType Interpreter:  ${wine}v$freetype_interp${reset}"
+    local match_phys=$(get_config_val "match_physical_dpi" "false")
+    local match_phys_str="Off"
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        match_phys_str="N/A (Wayland Only)"
+    elif [ "${match_phys,,}" = "true" ] || [ "$match_phys" = "1" ]; then
+        match_phys_str="On"
+    fi
+    echo -e "  - Auto Manage Graphics:        ${wine}$manage_str${reset}"
+    echo -e "  - Match Physical DPI:          ${wine}$match_phys_str${reset}"
+    echo -e "  - FreeType Interpreter:        ${wine}v$freetype_interp${reset}"
     echo ""
     
     # 4. Graphics & Display Status (Live Query)
@@ -597,9 +679,10 @@ show_status() {
     local phys_dpi=$(echo "$graphics_json" | grep -o '"physical_dpi": [0-9]*' | cut -d' ' -f2)
     local target_dpi=$(echo "$graphics_json" | grep -o '"target_wine_dpi": [0-9]*' | cut -d' ' -f2)
     local policy=$(echo "$graphics_json" | grep -o '"ideal_xwayland_policy": "[^"]*' | cut -d'"' -f4)
+    local rec_formula=$(echo "$graphics_json" | grep -o '"rec_formula": "[^"]*' | cut -d'"' -f4)
     
     local de_display="${de:-Unknown}"
-    if [[ "$de_display" =~ GNOME|KDE|COSMIC ]]; then
+    if [[ "$de_display" =~ GNOME|KDE|COSMIC ]] && [[ ! "$de_display" =~ X11 ]] && [[ ! "$de_display" =~ Wayland ]]; then
         if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
             de_display="${de_display} (Wayland)"
         else
@@ -618,7 +701,7 @@ show_status() {
     fi
 
     local sys_policy="Unknown"
-    if [[ "$de" =~ X11 ]]; then
+    if [[ "$de" =~ X11 ]] || [ "$XDG_SESSION_TYPE" = "x11" ]; then
         sys_policy="N/A (Native X11 Session)"
     elif [ "$de" = "GNOME" ]; then
         local gp=$(get_xwayland_scaling_factor)
@@ -654,9 +737,11 @@ show_status() {
     echo -e "  - Current XWayland Policy:     ${wine}${sys_policy}${reset}"
     echo -e "  - Current Wine DPI:            ${wine}${current_wine_dpi} DPI${reset}"
 
-    if [ -n "$supported" ]; then
-        echo -e "  - Recommended Wine DPI:        ${green}${target_dpi:-Unknown} DPI${reset} (Physical: $phys_dpi DPI)"
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        echo -e "  - Graphics Automation:         ${red}N/A (Wayland Only)${reset}"
+    elif [ -n "$supported" ]; then
         echo -e "  - Recommended XWayland Policy: ${green}${policy:-Unknown}${reset}"
+        echo -e "  - Recommended Wine DPI:        ${green}${target_dpi:-Unknown} DPI${reset} (${rec_formula})"
     else
         echo -e "  - Graphics Automation:         ${red}Unsupported DE${reset}"
     fi

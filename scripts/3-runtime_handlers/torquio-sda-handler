@@ -47,7 +47,7 @@ FREETYPE_INTERP=$(get_config_val "freetype_interpreter" "40")
 
 DPI_TO_SET="$MANUAL_DPI"
 
-if [ "$MANAGE_GRAPHICS" = "true" ]; then
+if [ "$XDG_SESSION_TYPE" != "x11" ] && [ "$MANAGE_GRAPHICS" = "true" ]; then
     # Since we are using the template placeholder for @TORQUIO_REPO_DIR@, we can look there for the script or use SCRIPT_DIR
     SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
     # Fallback to repo dir if run from a different context

@@ -13,6 +13,20 @@ def run_cmd(cmd):
     except Exception:
         return ""
 
+def should_match_physical_dpi():
+    config_path = os.path.expanduser("~/.config/torquio/config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r") as f:
+                d = json.load(f)
+                val = d.get("match_physical_dpi", False)
+                if isinstance(val, str):
+                    return val.lower() in ("true", "1")
+                return bool(val)
+        except Exception:
+            pass
+    return False
+
 def get_edid_dpi(connector, w_px, h_px):
     # Try to find the physical dimensions from sysfs
     base_dir = "/sys/class/drm"
@@ -89,29 +103,46 @@ def query_gnome():
         
     phys_dpi = get_edid_dpi(connector, w_px, h_px)
     session_type = os.environ.get("XDG_SESSION_TYPE", "").lower()
+    match_physical = should_match_physical_dpi()
+
     if session_type == "x11":
         return {
             "de": "GNOME",
-            "supported": True,
+            "supported": False,
             "connector": connector,
             "width": w_px,
             "height": h_px,
             "scale": scale,
             "physical_dpi": phys_dpi,
-            "ideal_xwayland_policy": "N/A (X11 session)",
-            "target_wine_dpi": max(96, phys_dpi),
-            "target_xwayland_factor": 1
+            "ideal_xwayland_policy": "N/A (Scaling handled natively by X11)",
+            "target_wine_dpi": 96,
+            "target_xwayland_factor": 1,
+            "rec_formula": "Handled natively by X11"
         }
         
     is_integer_scale = (scale == round(scale))
-    if is_integer_scale:
-        target_dpi = max(96, phys_dpi)
-        target_factor = int(scale)
-        ideal_policy = f"[GNOME] Native Integer Scaling (xwayland-scaling-factor={target_factor} or unset)" if scale > 1.0 else "N/A (desktop not scaled)"
+    if match_physical:
+        if is_integer_scale:
+            target_dpi = max(96, phys_dpi)
+            target_factor = int(scale)
+            ideal_policy = f"[GNOME] Native Integer Scaling (xwayland-scaling-factor={target_factor} or unset)" if scale > 1.0 else "N/A (desktop not scaled)"
+            rec_formula = f"Formula: WINE DPI matches physical ideal DPI ({target_dpi} DPI)"
+        else:
+            target_dpi = max(96, int(round(phys_dpi / scale)))
+            target_factor = 1
+            ideal_policy = "[GNOME] Framebuffer Upscale (xwayland-scaling-factor=1)" if scale > 1.0 else "N/A (desktop not scaled)"
+            rec_formula = f"Formula: {phys_dpi} physical ideal DPI / {scale}x GNOME upscale = {target_dpi} target DPI"
     else:
-        target_dpi = max(96, int(round(phys_dpi / scale)))
-        target_factor = 1
-        ideal_policy = "[GNOME] Framebuffer Upscale (xwayland-scaling-factor=1)" if scale > 1.0 else "N/A (desktop not scaled)"
+        if is_integer_scale:
+            target_dpi = int(round(96 * scale))
+            target_factor = int(scale)
+            ideal_policy = f"[GNOME] Native Integer Scaling (xwayland-scaling-factor={target_factor})" if scale > 1.0 else "N/A (desktop not scaled)"
+            rec_formula = f"Formula: Standard 96 DPI baseline * {scale}x scale = {target_dpi} target DPI"
+        else:
+            target_dpi = 96
+            target_factor = 1
+            ideal_policy = "[GNOME] Framebuffer Upscale (xwayland-scaling-factor=1)" if scale > 1.0 else "N/A (desktop not scaled)"
+            rec_formula = "Formula: Standard 96 DPI baseline (compositor upscales UI)"
 
     return {
         "de": "GNOME",
@@ -123,7 +154,8 @@ def query_gnome():
         "physical_dpi": phys_dpi,
         "ideal_xwayland_policy": ideal_policy,
         "target_wine_dpi": target_dpi,
-        "target_xwayland_factor": target_factor
+        "target_xwayland_factor": target_factor,
+        "rec_formula": rec_formula
     }
 
 def query_kde():
@@ -163,6 +195,15 @@ def query_kde():
                 if phys_dpi == 96 and connector2 != "Unknown" and connector2 != connector1:
                     phys_dpi = get_edid_dpi(connector2, w_px, h_px)
                     used_connector = connector2
+                
+                match_physical = should_match_physical_dpi()
+                if match_physical:
+                    target_dpi = max(96, phys_dpi)
+                    rec_formula = f"Formula: {phys_dpi} physical ideal DPI (Scale XWayland clients themselves)"
+                else:
+                    target_dpi = max(96, int(round(96 * scale)))
+                    rec_formula = f"Formula: Standard 96 DPI baseline * {scale}x scale = {target_dpi} target DPI"
+                
                 return {
                     "de": "KDE",
                     "supported": True,
@@ -172,7 +213,9 @@ def query_kde():
                     "scale": scale,
                     "physical_dpi": phys_dpi,
                     "ideal_xwayland_policy": "Apply scaling themselves" if scale > 1.0 else "N/A (desktop not scaled)",
-                    "target_wine_dpi": max(96, phys_dpi)
+                    "target_wine_dpi": target_dpi,
+                    "target_xwayland_factor": 1,
+                    "rec_formula": rec_formula
                 }
     return None
 
@@ -204,6 +247,15 @@ def query_cosmic():
             
             if w_px > 0:
                 phys_dpi = get_edid_dpi(connector, w_px, h_px)
+                
+                match_physical = should_match_physical_dpi()
+                if match_physical:
+                    target_dpi = max(96, phys_dpi)
+                    rec_formula = f"Formula: {phys_dpi} physical ideal DPI (Scale XWayland clients themselves)"
+                else:
+                    target_dpi = max(96, int(round(96 * scale)))
+                    rec_formula = f"Formula: Standard 96 DPI baseline * {scale}x scale = {target_dpi} target DPI"
+                
                 return {
                     "de": "COSMIC",
                     "supported": True,
@@ -213,7 +265,9 @@ def query_cosmic():
                     "scale": scale,
                     "physical_dpi": phys_dpi,
                     "ideal_xwayland_policy": "Optimize for gaming" if scale > 1.0 else "N/A (desktop not scaled)",
-                    "target_wine_dpi": max(96, phys_dpi)
+                    "target_wine_dpi": target_dpi,
+                    "target_xwayland_factor": 1,
+                    "rec_formula": rec_formula
                 }
     return None
 
@@ -260,17 +314,18 @@ def query_x11():
     if w_px == 0:
         return None
         
-    phys_dpi = get_edid_dpi(connector, w_px, h_px)
     return {
         "de": "X11 (Generic)",
-        "supported": True,
+        "supported": False,
         "connector": connector,
         "width": w_px,
         "height": h_px,
         "scale": 1.0,
         "physical_dpi": phys_dpi,
-        "ideal_xwayland_policy": "N/A (native X11)",
-        "target_wine_dpi": max(96, phys_dpi)
+        "ideal_xwayland_policy": "N/A (Scaling handled natively by X11)",
+        "target_wine_dpi": 96,
+        "target_xwayland_factor": 1,
+        "rec_formula": "Handled natively by X11"
     }
 
 def main():

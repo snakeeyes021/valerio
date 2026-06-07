@@ -41,7 +41,12 @@ fi
 
 # 2. Scaling Setup Pre-Installation Prompts
 echo -e "${wine}=== Display Scaling Setup ===${reset}"
-if [ "$AUTO_ACCEPT" = true ]; then
+if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+    set_config_val "manage_graphics" "false"
+    set_config_val "manual_dpi" "96"
+    echo -e "X11 session detected. Automated Graphics Management is disabled."
+    echo -e "WINE natively detects host display scaling settings under X11."
+elif [ "$AUTO_ACCEPT" = true ]; then
     set_config_val "manage_graphics" "false"
     set_config_val "manual_dpi" "96"
     echo -e "Using default: manage_graphics=${wine}false${reset}, manual_dpi=${wine}96${reset}"
