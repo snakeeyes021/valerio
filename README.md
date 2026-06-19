@@ -1,5 +1,9 @@
-# Valerio 
+# Torquio 
 A unified installation framework for Dorico on Linux
+
+> [!WARNING]
+> **Name change in progress**  
+> The name of the project is changing imminently. The new name is listed above, but it has not made it through to the URL or, importantly, to the actual installer/software itself. If you install using the current main branch you will NOT be able to update Torquio via a simple git pull (a full uninstall/reinstall would be required). Because of this, although it is not yet complete, for the time being we recommend installing from the feat/cli-refactor branch, which we hope to have merged in the very near future.
 
 ## The Mission
 This project aims to simplify the process of installing Steinberg's Dorico on Linux via WINE. Steinberg software has historically been difficult to run on Linux due in large part to installer complexity, account logins/license validation, and web-to-app token handoffs. Typically, if a user could get past these pain points, the software itself would run decently. 
