@@ -16,7 +16,7 @@ FOUND_INSTALLER=""
 # 1. Search Phase
 echo "Searching for Steinberg Download Assistant installer..."
 # Find all matching installers across all search directories, sort them by version, and pick the highest
-FOUND_INSTALLER=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "Steinberg_Download_Assistant_*_Installer_win.exe" 2>/dev/null | sort -V | tail -n 1)
+FOUND_INSTALLER=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "Steinberg_Download_Assistant_*_Installer_win*.exe" 2>/dev/null | sort -V | tail -n 1)
 
 if [ -n "$FOUND_INSTALLER" ]; then
     echo "Found SDA installer: $FOUND_INSTALLER"
@@ -29,7 +29,7 @@ if [ -z "$FOUND_INSTALLER" ]; then
     echo "  - $TORQUIO_INSTALLERS_DIR"
     echo "  - ~/Downloads"
     echo ""
-    echo "Filename should match: Steinberg_Download_Assistant_*_Installer_win.exe"
+    echo "Filename should match: Steinberg_Download_Assistant_*_Installer_win*.exe"
     exit 1
 fi
 

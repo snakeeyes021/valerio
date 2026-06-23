@@ -498,26 +498,6 @@ set_config_val "manual_dpi" "$SET_MANUAL_DPI"
 set_config_val "match_physical_dpi" "$SET_MATCH_PHYS"
 set_config_val "freetype_interpreter" "$SET_FREETYPE"
 
-# Confirm Install manifest
-print_wizard_banner
-echo -e "${blue}=== Installation Manifest ===${reset}"
-echo -e "  - Graphics Management:      ${wine}$SET_MANAGE${reset}"
-echo -e "  - Target Wine DPI:          ${wine}$SET_MANUAL_DPI DPI${reset}"
-echo -e "  - Match Physical DPI:       ${wine}$SET_MATCH_PHYS${reset}"
-echo -e "  - FreeType Interpreter:     ${wine}v$SET_FREETYPE${reset}"
-if [ -n "$MAPPED_FOLDER_PATH" ]; then
-    type_str="Network Drive"
-    if [ "$MAPPED_FOLDER_TYPE" = "desktop" ]; then
-        type_str="Desktop Shortcut"
-    fi
-    echo -e "  - Map Local Folder:         ${wine}$MAPPED_FOLDER_PATH${reset} (as $type_str)"
-fi
-if [ -n "$IMPORT_SHORTCUTS_PATH" ]; then
-    echo -e "  - Import Shortcuts:         ${wine}$(basename "$IMPORT_SHORTCUTS_PATH")${reset}"
-fi
-echo -e "${blue}=============================${reset}"
-echo ""
-
 # Asset Validation (SDA and MediaBay are required for software installs)
 if [ "$INSTALL_SOFTWARE" = true ]; then
     echo "Validating installers..."
@@ -525,7 +505,7 @@ if [ "$INSTALL_SOFTWARE" = true ]; then
     SEARCH_DIRS=("$TORQUIO_INSTALLERS_DIR" "$HOME/Downloads" "$PWD")
     
     FOUND_MEDIABAY=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "MediaBay_Installer_win64*.zip" 2>/dev/null | sort -V | tail -n 1)
-    FOUND_SDA=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "Steinberg_Download_Assistant_*_Installer_win.exe" 2>/dev/null | sort -V | tail -n 1)
+    FOUND_SDA=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "Steinberg_Download_Assistant_*_Installer_win*.exe" 2>/dev/null | sort -V | tail -n 1)
     FOUND_NP=$(find "${SEARCH_DIRS[@]}" -maxdepth 1 -type f -name "NotePerformer-Installer-*.exe" 2>/dev/null | sort -V | tail -n 1)
     
     MISSING_MANDATORY=false
@@ -534,7 +514,7 @@ if [ "$INSTALL_SOFTWARE" = true ]; then
         MISSING_MANDATORY=true
     fi
     if [ -z "$FOUND_SDA" ]; then
-        echo -e "  [${red}MISSING${reset}] Mandatory: Steinberg_Download_Assistant_*_Installer_win.exe"
+        echo -e "  [${red}MISSING${reset}] Mandatory: Steinberg_Download_Assistant_*_Installer_win*.exe"
         MISSING_MANDATORY=true
     fi
     
@@ -544,8 +524,36 @@ if [ "$INSTALL_SOFTWARE" = true ]; then
         echo "Please place them in $TORQUIO_INSTALLERS_DIR or ~/Downloads and run this script again."
         exit 1
     fi
-    echo ""
 fi
+
+# Confirm Install manifest
+print_wizard_banner
+echo -e "${blue}=== Installation Manifest ===${reset}"
+echo -e "  - Graphics Management:        ${wine}$SET_MANAGE${reset}"
+echo -e "  - Target Wine DPI:            ${wine}$SET_MANUAL_DPI DPI${reset}"
+echo -e "  - Match Physical DPI:         ${wine}$SET_MATCH_PHYS${reset}"
+echo -e "  - FreeType Interpreter:       ${wine}v$SET_FREETYPE${reset}"
+if [ -n "$MAPPED_FOLDER_PATH" ]; then
+    type_str="Network Drive"
+    if [ "$MAPPED_FOLDER_TYPE" = "desktop" ]; then
+        type_str="Desktop Shortcut"
+    fi
+    echo -e "  - Map Local Folder:           ${wine}$MAPPED_FOLDER_PATH${reset} (as $type_str)"
+fi
+if [ -n "$IMPORT_SHORTCUTS_PATH" ]; then
+    echo -e "  - Import Shortcuts:           ${wine}$(basename "$IMPORT_SHORTCUTS_PATH")${reset}"
+fi
+if [ "$INSTALL_SOFTWARE" = true ]; then
+    echo -e "  - MediaBay Installer:         ${wine}$(basename "$FOUND_MEDIABAY")${reset}"
+    echo -e "  - SDA Installer:              ${wine}$(basename "$FOUND_SDA")${reset}"
+    if [ -n "$FOUND_NP" ]; then
+        echo -e "  - NotePerformer Installer:    ${wine}$(basename "$FOUND_NP")${reset}"
+    else
+        echo -e "  - NotePerformer Installer:    ${gray}Not found (skipping)${reset}"
+    fi
+fi
+echo -e "${blue}=============================${reset}"
+echo ""
 
 if [ "$AUTO_ACCEPT" = false ]; then
     read -p "Proceed with the wizard installation tasks? [Y/n]: " confirm_install
