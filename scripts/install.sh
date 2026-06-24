@@ -306,7 +306,7 @@ if [ "$AUTO_ACCEPT" = false ]; then
                     host_policy="Override Scaling (xwayland-scaling-factor=$host_policy_val)"
                 fi
             elif [ "$de" = "KDE" ]; then
-                local kread_bin="kreadconfig6"
+                kread_bin="kreadconfig6"
                 command -v kreadconfig6 >/dev/null 2>&1 || kread_bin="kreadconfig5"
                 host_policy_val=$($kread_bin --file kdeglobals --group KScreen --key XwaylandClientsScale 2>/dev/null || true)
                 if [ -z "$host_policy_val" ]; then
@@ -374,7 +374,7 @@ if [ "$AUTO_ACCEPT" = false ]; then
                 elif [ "$de" = "KDE" ]; then
                     read -p "Enter manual KDE XWayland scale policy (true = scale clients, false = scale compositor) [Current: $host_policy_val]: " user_policy
                     if [[ "$user_policy" = "true" || "$user_policy" = "false" ]]; then
-                        local kwrite_bin="kwriteconfig6"
+                        kwrite_bin="kwriteconfig6"
                         command -v kwriteconfig6 >/dev/null 2>&1 || kwrite_bin="kwriteconfig5"
                         $kwrite_bin --file kdeglobals --group KScreen --key XwaylandClientsScale "$user_policy" 2>/dev/null || true
                         $kwrite_bin --file kdeglobals --group KScreen --key XwaylandClientScale "$user_policy" 2>/dev/null || true

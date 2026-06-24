@@ -65,7 +65,7 @@ MANAGE_GRAPHICS=$(get_config_val "manage_graphics" "false")
 if [ "$MANAGE_GRAPHICS" = "true" ] || [ "$(get_config_val "auto_scale_mutter" "false")" = "true" ]; then
     # 1. GNOME Scaling Restore
     if [ -n "$ORIG_SCALE" ]; then
-        local from_desc
+        from_desc=""
         if [ "$ORIG_SCALE" = "1" ]; then
             from_desc="Framebuffer Upscale (xwayland-scaling-factor=1)"
         elif [ "$ORIG_SCALE" = "0" ] || [ -z "$ORIG_SCALE" ]; then
@@ -73,7 +73,7 @@ if [ "$MANAGE_GRAPHICS" = "true" ] || [ "$(get_config_val "auto_scale_mutter" "f
         else
             from_desc="Override Scaling (xwayland-scaling-factor=$ORIG_SCALE)"
         fi
-        local to_desc="Framebuffer Upscale (xwayland-scaling-factor=1)"
+        to_desc="Framebuffer Upscale (xwayland-scaling-factor=1)"
 
         echo ""
         echo -e "${blue}================================================================${reset}"
@@ -105,30 +105,31 @@ if [ "$MANAGE_GRAPHICS" = "true" ] || [ "$(get_config_val "auto_scale_mutter" "f
 
     # 2. KDE Scaling Restore
     if [ -n "$ORIG_KDE" ]; then
-        local from_desc
+        from_desc=""
         if [ "$ORIG_KDE" = "false" ]; then
             from_desc="Scale XWayland clients by compositor (XwaylandClientsScale=false)"
         else
             from_desc="Scale XWayland clients themselves (XwaylandClientsScale=true)"
         fi
-        local to_desc="Scale XWayland clients themselves (XwaylandClientsScale=true)"
+        to_desc="Scale XWayland clients themselves (XwaylandClientsScale=true)"
 
         echo ""
         echo -e "${blue}================================================================${reset}"
         echo -e "          ${wine}XWayland Global Scaling Policy Restore${reset}"
         echo -e "${blue}================================================================${reset}"
-        echo -e "Torquio detected that host KDE XWayland policy was modified from ${wine}$from_desc${reset} to ${wine}$to_desc${reset}."
-        echo "During setup/launch, you set Torquio to automatically adjust your desktop"
+        echo "During setup/launch, Torquio automatically adjusted your desktop"
         echo "environment's global XWayland scaling policy to match the ideal"
-        echo "setting for Dorico."
+        echo "setting for Dorico. This ensured Dorico's interface rendered crisply"
+        echo "at high resolution (unscaled by the compositor) instead of looking blurry."
         echo ""
         echo "Restoring this setting will return your system to its original scaling"
         echo "behavior (which may affect how other XWayland applications scale)."
         echo -e "${blue}================================================================${reset}"
         echo ""
+        echo -e "Torquio detected that host KDE XWayland policy was modified from ${wine}$from_desc${reset} to ${wine}$to_desc${reset}."
         read -p "Would you like to restore your KDE XWayland clients scale policy to $from_desc? [Y/n]: " restore_confirm
         if [[ ! "$restore_confirm" =~ ^[Nn]$ ]]; then
-            local kwrite_bin="kwriteconfig6"
+            kwrite_bin="kwriteconfig6"
             if ! command -v kwriteconfig6 >/dev/null 2>&1; then
                 if command -v kwriteconfig5 >/dev/null 2>&1; then
                     kwrite_bin="kwriteconfig5"
@@ -149,7 +150,7 @@ if [ "$MANAGE_GRAPHICS" = "true" ] || [ "$(get_config_val "auto_scale_mutter" "f
 
     # 3. COSMIC Scaling Restore
     if [ -n "$ORIG_COSMIC" ]; then
-        local from_desc
+        from_desc=""
         if [ "$ORIG_COSMIC" = "fractional" ]; then
             from_desc="Optimize for gaming and full-screen apps (descale_xwayland=fractional)"
         elif [ "$ORIG_COSMIC" = "true" ]; then
@@ -157,7 +158,7 @@ if [ "$MANAGE_GRAPHICS" = "true" ] || [ "$(get_config_val "auto_scale_mutter" "f
         else
             from_desc="Maximum compatibility mode (descale_xwayland=false)"
         fi
-        local to_desc="Optimize for gaming and full-screen apps (descale_xwayland=fractional)"
+        to_desc="Optimize for gaming and full-screen apps (descale_xwayland=fractional)"
 
         echo ""
         echo -e "${blue}================================================================${reset}"
