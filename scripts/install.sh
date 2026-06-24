@@ -254,20 +254,12 @@ if [ "$AUTO_ACCEPT" = false ]; then
     echo -e "${gray}by re-running the configuration wizard or via the Torquio menus.${reset}"
     echo "--------------------------------------------------"
     if [ "$XDG_SESSION_TYPE" = "x11" ]; then
-        echo "X11 session detected. Automated scaling management is Wayland-Only."
-        echo "WINE natively detects host display scaling settings under X11."
+        echo "X11 session detected. Automated scaling management is Wayland-only."
+        echo "WINE natively detects and applies host display scaling settings under X11."
         SET_MANAGE="false"
         SET_MATCH_PHYS="false"
+        SET_MANUAL_DPI="$CUR_MANUAL_DPI"
         echo ""
-        read -p "Would you like to configure a custom manual WINE prefix DPI? [y/N]: " custom_dpi_prompt
-        if [[ "$custom_dpi_prompt" =~ ^[Yy]$ ]]; then
-            read -p "Enter custom WINE DPI (e.g. 96, 120, 144, 192) [Current: $CUR_MANUAL_DPI]: " user_dpi
-            if [[ "$user_dpi" =~ ^[0-9]+$ ]]; then
-                SET_MANUAL_DPI="$user_dpi"
-            fi
-        else
-            SET_MANUAL_DPI="$CUR_MANUAL_DPI"
-        fi
     else
         echo "Torquio can automatically coordinate your Wayland desktop's XWayland"
         echo "scaling policy and Wine DPI settings for optimal rendering."
@@ -282,20 +274,7 @@ if [ "$AUTO_ACCEPT" = false ]; then
         if [[ -z "$auto_scaling" && "$def_manage" = "Y" ]] || [[ "$auto_scaling" =~ ^[Yy]$ ]]; then
             SET_MANAGE="true"
             SET_MANUAL_DPI="96"
-            
-            def_phys="N"
-            if [ "$CUR_MATCH_PHYS" = "true" ]; then def_phys="Y"; fi
-            phys_bracket="[y/N]"
-            if [ "$def_phys" = "Y" ]; then phys_bracket="[Y/n]"; fi
-            echo ""
-            echo "Match Hardware Physical DPI matches WINE directly to your screen's EDID spec."
-            echo "(Recommended: Standard Logical Scaling - choose 'No')"
-            read -p "Enable Match Hardware Physical DPI? $phys_bracket: " match_phys
-            if [[ -z "$match_phys" && "$def_phys" = "Y" ]] || [[ "$match_phys" =~ ^[Yy]$ ]]; then
-                SET_MATCH_PHYS="true"
-            else
-                SET_MATCH_PHYS="false"
-            fi
+            SET_MATCH_PHYS="$CUR_MATCH_PHYS"
         else
             SET_MANAGE="false"
             SET_MATCH_PHYS="false"
@@ -361,6 +340,12 @@ if [ "$AUTO_ACCEPT" = false ]; then
             echo ""
             read -p "Use these manual defaults? [Y/n]: " manual_confirm
             if [[ "$manual_confirm" =~ ^[Nn]$ ]]; then
+                echo ""
+                echo -e "${blue}How to choose your custom WINE DPI:${reset}"
+                echo "Your ideal WINE DPI is usually: 96 * (your desktop scaling factor)."
+                echo "  - A 1080p screen with no scaling (100%) should be left at 96 DPI."
+                echo "  - A 4K screen using 150% scaling should usually opt for 96 * 1.5 = 144 DPI."
+                echo ""
                 read -p "Enter custom WINE DPI (e.g. 96, 120, 144, 192) [Current: $CUR_MANUAL_DPI]: " user_dpi
                 if [[ "$user_dpi" =~ ^[0-9]+$ ]]; then
                     SET_MANUAL_DPI="$user_dpi"
