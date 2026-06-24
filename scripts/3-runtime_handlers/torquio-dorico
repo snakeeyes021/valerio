@@ -16,6 +16,8 @@ TORQUIO_PREFIX_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/torquio/prefix"
 WINE_CUSTOM_BIN="/opt/wine-custom/bin"
 export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/run/host/run/dbus/system_bus_socket"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+LAUNCH_ARG="$1"
+
 get_config_val() {
     local key="$1"
     local default="$2"
@@ -82,6 +84,11 @@ if [ "$XDG_SESSION_TYPE" != "x11" ] && [ "$MANAGE_GRAPHICS" = "true" ]; then
             if [ "$TARGET_FACTOR" -gt 1 ] && { [ "$CURRENT_POLICY" = "0" ] || [ -z "$CURRENT_POLICY" ]; }; then
                 DESIRED_POLICY="$CURRENT_POLICY"
             fi
+            if [ "$DESIRED_POLICY" = "1" ] && { [ "$CURRENT_POLICY" = "0" ] || [ -z "$CURRENT_POLICY" ]; }; then
+                if [ "$SCALE" = "1" ] || [ "$SCALE" = "1.0" ] || [ "$SCALE" = "1.00" ] || [ -z "$SCALE" ]; then
+                    DESIRED_POLICY="$CURRENT_POLICY"
+                fi
+            fi
             
             if [ -n "$DESIRED_POLICY" ] && [ "$CURRENT_POLICY" != "$DESIRED_POLICY" ]; then
                 if [ "$WARN_DISMISSED" != "true" ]; then
@@ -112,6 +119,9 @@ if [ "$XDG_SESSION_TYPE" != "x11" ] && [ "$MANAGE_GRAPHICS" = "true" ]; then
             if [ -z "$CURRENT_POLICY" ]; then
                 CURRENT_POLICY=$($kread_bin --file kdeglobals --group KScreen --key XwaylandClientScale 2>/dev/null)
             fi
+            if [ -z "$CURRENT_POLICY" ]; then
+                CURRENT_POLICY="true"
+            fi
             if [ "$CURRENT_POLICY" != "true" ]; then
                 if [ "$WARN_DISMISSED" != "true" ]; then
                     warn_msg="Torquio needs to adjust your global XWayland scaling policy for optimal Dorico performance. This is a persistent system setting change (not temporary) and may affect the size/rendering of other XWayland applications going forward. You may also want to restart any currently running XWayland applications after enabling this mode.\n\nTorquio will back up your current settings first so they can be easily restored later.\n\nAllow Torquio to manage this?"
@@ -132,7 +142,11 @@ if [ "$XDG_SESSION_TYPE" != "x11" ] && [ "$MANAGE_GRAPHICS" = "true" ]; then
             fi
         elif [ "$DE" = "COSMIC" ]; then
             CURRENT_POLICY=$(cat ~/.config/cosmic/com.system76.CosmicComp/v1/descale_xwayland 2>/dev/null)
-            if [ "$CURRENT_POLICY" != "fractional" ]; then
+            DESIRED_POLICY="fractional"
+            if [ "$SCALE" = "1" ] || [ "$SCALE" = "1.0" ] || [ "$SCALE" = "1.00" ]; then
+                DESIRED_POLICY="$CURRENT_POLICY"
+            fi
+            if [ "$CURRENT_POLICY" != "$DESIRED_POLICY" ]; then
                 if [ "$WARN_DISMISSED" != "true" ]; then
                     warn_msg="Torquio needs to adjust your global XWayland scaling policy for optimal Dorico performance. This is a persistent system setting change (not temporary) and may affect the size/rendering of other XWayland applications going forward. You may also want to restart any currently running XWayland applications after enabling this mode.\n\nTorquio will back up your current settings first so they can be easily restored later.\n\nAllow Torquio to manage this?"
                     if command -v zenity >/dev/null 2>&1; then
@@ -147,16 +161,23 @@ if [ "$XDG_SESSION_TYPE" != "x11" ] && [ "$MANAGE_GRAPHICS" = "true" ]; then
                     set_config_val "original_cosmic_policy" "${CURRENT_POLICY:-none}"
                 fi
                 mkdir -p ~/.config/cosmic/com.system76.CosmicComp/v1
-                echo "fractional" > ~/.config/cosmic/com.system76.CosmicComp/v1/descale_xwayland 2>/dev/null || true
+                echo "$DESIRED_POLICY" > ~/.config/cosmic/com.system76.CosmicComp/v1/descale_xwayland 2>/dev/null || true
             fi
         fi
     fi
 
-    # Update LogPixels registry key
-    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$FREETYPE_INTERP\"; wine reg add \"HKCU\\Control Panel\\Desktop\" /v LogPixels /t REG_DWORD /d $DPI_TO_SET /f" >/dev/null 2>&1 || true
-
-    # Restart wineserver to ensure DPI change takes effect before Dorico launches
-    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; wineserver -k && wineserver -w" >/dev/null 2>&1 || true
+    # Update LogPixels registry key if it differs
+    CURRENT_REG_DPI=$(distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; wine reg query \"HKCU\\Control Panel\\Desktop\" /v LogPixels 2>/dev/null" | grep -o '0x[0-9a-fA-F]*' | xargs printf "%d" 2>/dev/null || echo "96")
+    if [ "$CURRENT_REG_DPI" != "$DPI_TO_SET" ]; then
+        distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; export FREETYPE_PROPERTIES=\"truetype:interpreter-version=$FREETYPE_INTERP\"; wine reg add \"HKCU\\Control Panel\\Desktop\" /v LogPixels /t REG_DWORD /d $DPI_TO_SET /f" >/dev/null 2>&1 || true
+        
+        # Only restart wineserver if no other Steinberg/Dorico processes are currently running and we are not in a file-open flow
+        if [ -z "$LAUNCH_ARG" ]; then
+            if ! distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "ps auxww" | grep -iE "Dorico|Activation|Download|STEI|aria2" | grep -v grep >/dev/null 2>&1; then
+                distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "export WINEPREFIX=\"$TORQUIO_PREFIX_DIR\"; export PATH=\"$WINE_CUSTOM_BIN:\$PATH\"; wineserver -k && wineserver -w" >/dev/null 2>&1 || true
+            fi
+        fi
+    fi
 fi
 # --- Keyboard Auto-Repeat Lag Remedy (xset) ---
 # Surgically disable auto-repeat for character inputs (prone to runaway loops) while keeping it active for navigation/editing (arrows, backspace, delete)

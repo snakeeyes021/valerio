@@ -129,6 +129,11 @@ apply_graphics_settings() {
             if [ "$target_factor" -gt 1 ] && { [ "$current_policy" = "0" ] || [ -z "$current_policy" ]; }; then
                 desired_policy="$current_policy"
             fi
+            if [ "$desired_policy" = "1" ] && { [ "$current_policy" = "0" ] || [ -z "$current_policy" ]; }; then
+                if [ "$scale" = "1" ] || [ "$scale" = "1.0" ] || [ "$scale" = "1.00" ] || [ -z "$scale" ]; then
+                    desired_policy="$current_policy"
+                fi
+            fi
             if [ -n "$desired_policy" ] && [ "$current_policy" != "$desired_policy" ]; then
                 local backup_val=$(get_config_val "original_scale_factor" "")
                 if [ -z "$backup_val" ]; then
@@ -150,6 +155,9 @@ apply_graphics_settings() {
             if [ -z "$current_policy" ]; then
                 current_policy=$($kread_bin --file kdeglobals --group KScreen --key XwaylandClientScale 2>/dev/null)
             fi
+            if [ -z "$current_policy" ]; then
+                current_policy="true"
+            fi
             if [ "$current_policy" != "true" ]; then
                 local backup_val=$(get_config_val "original_kde_policy" "")
                 if [ -z "$backup_val" ]; then
@@ -162,14 +170,18 @@ apply_graphics_settings() {
             fi
         elif [ "$de" = "COSMIC" ]; then
             local current_policy=$(cat ~/.config/cosmic/com.system76.CosmicComp/v1/descale_xwayland 2>/dev/null)
-            if [ "$current_policy" != "fractional" ]; then
+            local desired_policy="fractional"
+            if [ "$scale" = "1" ] || [ "$scale" = "1.0" ] || [ "$scale" = "1.00" ]; then
+                desired_policy="$current_policy"
+            fi
+            if [ "$current_policy" != "$desired_policy" ]; then
                 local backup_val=$(get_config_val "original_cosmic_policy" "")
                 if [ -z "$backup_val" ]; then
                     set_config_val "original_cosmic_policy" "${current_policy:-none}"
                     echo "Backed up current COSMIC XWayland scaling policy (${current_policy:-none})."
                 fi
                 mkdir -p ~/.config/cosmic/com.system76.CosmicComp/v1
-                echo "fractional" > ~/.config/cosmic/com.system76.CosmicComp/v1/descale_xwayland 2>/dev/null || true
+                echo "$desired_policy" > ~/.config/cosmic/com.system76.CosmicComp/v1/descale_xwayland 2>/dev/null || true
             fi
         fi
         
