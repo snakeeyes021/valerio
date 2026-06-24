@@ -56,7 +56,18 @@ if [ "$MANAGE_GRAPHICS" = "true" ] || [ "$(get_config_val "auto_scale_mutter" "f
     # 1. GNOME Scaling Restore
     if [ -n "$ORIG_SCALE" ]; then
         echo ""
-        echo -e "Torquio detected that host GNOME XWayland scaling was modified from ${wine}$ORIG_SCALE${reset} to ${wine}1${reset}."
+        echo -e "${blue}================================================================${reset}"
+        echo -e "          ${wine}XWayland Global Scaling Policy Restore${reset}"
+        echo -e "${blue}================================================================${reset}"
+        echo -e "Torquio detected that host GNOME XWayland policy was modified from ${wine}$ORIG_SCALE${reset} to ${wine}1${reset}."
+        echo "During setup/launch, you set Torquio to automatically adjust your desktop"
+        echo "environment's global XWayland scaling policy to match the ideal"
+        echo "setting for Dorico."
+        echo ""
+        echo "Restoring this setting will return your system to its original scaling"
+        echo "behavior (which may affect how other XWayland applications scale)."
+        echo -e "${blue}================================================================${reset}"
+        echo ""
         read -p "Would you like to restore your host display scale to $ORIG_SCALE? [Y/n]: " restore_confirm
         if [[ ! "$restore_confirm" =~ ^[Nn]$ ]]; then
             if command -v gsettings >/dev/null 2>&1; then
@@ -74,6 +85,18 @@ if [ "$MANAGE_GRAPHICS" = "true" ] || [ "$(get_config_val "auto_scale_mutter" "f
 
     # 2. KDE Scaling Restore
     if [ -n "$ORIG_KDE" ]; then
+        echo ""
+        echo -e "${blue}================================================================${reset}"
+        echo -e "          ${wine}XWayland Global Scaling Policy Restore${reset}"
+        echo -e "${blue}================================================================${reset}"
+        echo "During setup/launch, Torquio automatically adjusted your desktop"
+        echo "environment's global XWayland scaling policy to match the ideal"
+        echo "setting for Dorico. This ensured Dorico's interface rendered crisply"
+        echo "at high resolution (unscaled by the compositor) instead of looking blurry."
+        echo ""
+        echo "Restoring this setting will return your system to its original scaling"
+        echo "behavior (which may affect how other XWayland applications scale)."
+        echo -e "${blue}================================================================${reset}"
         echo ""
         echo -e "Torquio detected that host KDE XWayland policy was modified from ${wine}$ORIG_KDE${reset} to ${wine}true${reset}."
         read -p "Would you like to restore your KDE XWayland clients scale policy to $ORIG_KDE? [Y/n]: " restore_confirm
@@ -99,6 +122,18 @@ if [ "$MANAGE_GRAPHICS" = "true" ] || [ "$(get_config_val "auto_scale_mutter" "f
 
     # 3. COSMIC Scaling Restore
     if [ -n "$ORIG_COSMIC" ]; then
+        echo ""
+        echo -e "${blue}================================================================${reset}"
+        echo -e "          ${wine}XWayland Global Scaling Policy Restore${reset}"
+        echo -e "${blue}================================================================${reset}"
+        echo "During setup/launch, Torquio automatically adjusted your desktop"
+        echo "environment's global XWayland scaling policy to match the ideal"
+        echo "setting for Dorico. This ensured Dorico's interface rendered crisply"
+        echo "at high resolution (unscaled by the compositor) instead of looking blurry."
+        echo ""
+        echo "Restoring this setting will return your system to its original scaling"
+        echo "behavior (which may affect how other XWayland applications scale)."
+        echo -e "${blue}================================================================${reset}"
         echo ""
         echo -e "Torquio detected that host COSMIC XWayland policy was modified from ${wine}$ORIG_COSMIC${reset} to ${wine}fractional${reset}."
         read -p "Would you like to restore your COSMIC XWayland clients scale policy to $ORIG_COSMIC? [Y/n]: " restore_confirm

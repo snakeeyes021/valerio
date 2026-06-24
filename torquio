@@ -454,8 +454,28 @@ configure_graphics() {
             local orig_cosmic=$(get_config_val "original_cosmic_policy" "")
             local restored=false
 
+            local restore_msg_printed=false
+            print_restore_info() {
+                if [ "$restore_msg_printed" = "false" ]; then
+                    echo ""
+                    echo -e "${blue}================================================================${reset}"
+                    echo -e "          ${wine}XWayland Global Scaling Policy Restore${reset}"
+                    echo -e "${blue}================================================================${reset}"
+                    echo -e "Torquio detected that host GNOME XWayland policy was modified from ${wine}$ORIG_SCALE${reset} to ${wine}1${reset}."
+                    echo "During setup/launch, you set Torquio to automatically adjust your desktop"
+                    echo "environment's global XWayland scaling policy to match the ideal"
+                    echo "setting for Dorico."
+                    echo ""
+                    echo "Restoring this setting will return your system to its original scaling"
+                    echo "behavior (which may affect how other XWayland applications scale)."
+                    echo -e "${blue}================================================================${reset}"
+                    echo ""
+                    restore_msg_printed=true
+                fi
+            }
+
             if [ "$de" = "GNOME" ] && [ -n "$orig_scale" ]; then
-                echo ""
+                print_restore_info
                 read -p "Would you like to restore your GNOME XWayland scale setting back to its original value ($orig_scale)? [Y/n]: " restore_confirm
                 if [[ ! "$restore_confirm" =~ ^[Nn]$ ]]; then
                     if gsettings list-schemas | grep -q org.gnome.mutter.wayland; then
@@ -467,7 +487,7 @@ configure_graphics() {
                     restored=true
                 fi
             elif [ "$de" = "KDE" ] && [ -n "$orig_kde" ]; then
-                echo ""
+                print_restore_info
                 read -p "Would you like to restore your KDE XWayland scale setting back to its original value ($orig_kde)? [Y/n]: " restore_confirm
                 if [[ ! "$restore_confirm" =~ ^[Nn]$ ]]; then
                     local kwrite_bin="kwriteconfig6"
@@ -479,7 +499,7 @@ configure_graphics() {
                     restored=true
                 fi
             elif [ "$de" = "COSMIC" ] && [ -n "$orig_cosmic" ]; then
-                echo ""
+                print_restore_info
                 read -p "Would you like to restore your COSMIC XWayland scale setting back to its original value ($orig_cosmic)? [Y/n]: " restore_confirm
                 if [[ ! "$restore_confirm" =~ ^[Nn]$ ]]; then
                     mkdir -p ~/.config/cosmic/com.system76.CosmicComp/v1
