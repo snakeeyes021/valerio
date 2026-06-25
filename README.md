@@ -81,7 +81,7 @@ torquio
 ### Quality of Life Features
 
 *   **Console Dashboard**: Displays the active status of your container dependencies, configuration preferences, and system details in a handy CLI interface.
-*   **High-DPI Scaling Controls**: Automatically manages High-DPI XWayland/prefix scaling so that Dorico renders well given your monitor specs and settings.
+*   **Automatic Scaling**: Automatically manages XWayland scaling policy/prefix DPI so that Dorico renders well given your monitor specs and settings.
 *   **Project Folder Mapping**: Maps your native host folders directly into the WINE file picker using a convenient wizard so your projects are always easily accessible.
 *   **Keyboard Shortcut Backups**: Saves or restores your custom Dorico keyboard shortcuts for convenient transport to and from other machines.
 *   **One-Click Maintenance**: Provides quick menu items to run WINE configuration, edit the registry, open a file manager inside the prefix, soft-reboot the environment, or safely shut down the server.
