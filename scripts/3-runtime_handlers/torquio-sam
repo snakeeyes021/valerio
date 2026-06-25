@@ -233,7 +233,7 @@ if [ "$XDG_SESSION_TYPE" != "x11" ] && [ "$MANAGE_GRAPHICS" = "true" ]; then
                 # Apply host scaling change if needed
                 if [ "$HOST_CHANGE_NEEDED" = "true" ]; then
                     if [ "$WARN_DISMISSED" != "true" ]; then
-                        warn_msg="Torquio needs to adjust your global XWayland scaling policy for optimal Dorico performance. This is a persistent system setting change (not temporary) and may affect the size/rendering of other XWayland applications going forward. You may also want to restart any currently running XWayland applications after enabling this mode.\n\nTorquio will back up your current settings first so they can be easily restored later.\n\nAllow Torquio to manage this?"
+                        warn_msg="You've configured Torquio to automatically handle graphics/scaling changes. Torquio is about to adjust your global XWayland scaling policy for optimal Dorico performance.\n\nReminder: This is a persistent system setting change and may affect the scaling of other running XWayland applications. Your current settings will be backed up first so they can be easily restored later.\n\nProceed with applying this change?"
                         if command -v zenity >/dev/null 2>&1; then
                             zenity --question --title="Torquio Graphics Management" --text="$warn_msg" || exit 1
                         elif command -v kdialog >/dev/null 2>&1; then
