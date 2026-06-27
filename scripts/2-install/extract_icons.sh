@@ -9,9 +9,11 @@ if [[ "$1" == "--initial" ]]; then
     INITIAL_INSTALL=true
 fi
 
-# Ensure directories exist
-ICON_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
-mkdir -p "$ICON_DIR"
+# Ensure hicolor icon theme subdirectories exist
+HICOLOR_DIR="$HOME/.local/share/icons/hicolor"
+for size in 16x16 22x22 24x24 32x32 48x48 64x64 128x128 256x256; do
+    mkdir -p "$HICOLOR_DIR/$size/apps"
+done
 mkdir -p "$HOME/.local/share/applications"
 
 update_host_icon_cache() {
@@ -22,6 +24,74 @@ update_host_icon_cache() {
         gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor/" >/dev/null 2>&1 || true
         touch "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
     fi
+}
+
+install_multi_res_icons() {
+    local source_dir="$1"
+    local target_name="$2"
+
+    python3 -c '
+import os, sys, glob, struct, shutil
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
+tmp_dir = sys.argv[1]
+icon_name = sys.argv[2]
+hicolor_base = sys.argv[3]
+
+target_sizes = [16, 22, 24, 32, 48, 64, 128, 256]
+for s in target_sizes:
+    os.makedirs(os.path.join(hicolor_base, f"{s}x{s}/apps"), exist_ok=True)
+
+pngs = glob.glob(os.path.join(tmp_dir, "*.png"))
+size_map = {}
+
+def get_png_size(filepath):
+    try:
+        with open(filepath, "rb") as f:
+            data = f.read(24)
+            if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
+                return struct.unpack(">II", data[16:24])
+    except Exception:
+        pass
+    return None
+
+for p in pngs:
+    dim = get_png_size(p)
+    if dim and dim[0] == dim[1]:
+        w = dim[0]
+        if w in target_sizes:
+            if w not in size_map or os.path.getsize(p) > os.path.getsize(size_map[w]):
+                size_map[w] = p
+
+for w, p in size_map.items():
+    dest = os.path.join(hicolor_base, f"{w}x{w}/apps", f"{icon_name}.png")
+    shutil.copy2(p, dest)
+
+largest_size = max(size_map.keys()) if size_map else None
+largest_path = size_map[largest_size] if largest_size else (max(pngs, key=os.path.getsize) if pngs else None)
+
+if largest_path:
+    dest_256 = os.path.join(hicolor_base, "256x256/apps", f"{icon_name}.png")
+    if not os.path.exists(dest_256):
+        shutil.copy2(largest_path, dest_256)
+
+    for s in target_sizes:
+        dest = os.path.join(hicolor_base, f"{s}x{s}/apps", f"{icon_name}.png")
+        if not os.path.exists(dest):
+            if Image:
+                try:
+                    im = Image.open(largest_path)
+                    resample_filter = getattr(Image, "Resampling", Image).LANCZOS
+                    im_resized = im.resize((s, s), resample_filter)
+                    im_resized.save(dest)
+                except Exception:
+                    shutil.copy2(largest_path, dest)
+            else:
+                shutil.copy2(largest_path, dest)
+' "$source_dir" "$target_name" "$HICOLOR_DIR"
 }
 
 extract_icon() {
@@ -43,7 +113,6 @@ extract_icon() {
         fi
         
         # 2. Fallback search in Program Files and Program Files (x86)
-        # Using case-insensitive matching and catching common naming variations
         exe_path=$(find "$TORQUIO_PREFIX_DIR/drive_c/Program Files" "$TORQUIO_PREFIX_DIR/drive_c/Program Files (x86)" -type f -iname "$search_pattern" 2>/dev/null | head -n 1)
         
         if [ -z "$exe_path" ]; then
@@ -60,7 +129,7 @@ extract_icon() {
         fi
     fi
     
-    echo "Extracting icon from $exe_path to $icon_name..."
+    echo "Extracting icons from $exe_path to $icon_name..."
     local tmp_dir=$(mktemp -d)
     
     # Extract all icon resources (group 14)
@@ -72,16 +141,8 @@ extract_icon() {
     if [ -n "$ico_file" ]; then
         # Extract all sizes from the .ico to PNGs
         icotool -x "$ico_file" -o "$tmp_dir/" 2>/dev/null || true
-        
-        # Find the largest PNG (usually 256x256, sort by file size descending)
-        local best_png=$(ls -S "$tmp_dir"/*.png 2>/dev/null | head -n 1)
-        
-        if [ -n "$best_png" ]; then
-            cp "$best_png" "$ICON_DIR/${icon_name}.png"
-            echo "Successfully installed ${icon_name}.png"
-        else
-            echo "No PNG could be extracted from $ico_file"
-        fi
+        install_multi_res_icons "$tmp_dir" "$icon_name"
+        echo "Successfully installed multi-resolution icons for ${icon_name}"
     else
         echo "No ICO resource found in $exe_path"
     fi
@@ -98,14 +159,8 @@ extract_icon() {
         
         if [ -n "$proj_ico" ]; then
             icotool -x "$proj_ico" -o "$proj_tmp/" 2>/dev/null || true
-            local best_proj_png=$(ls -S "$proj_tmp"/*.png 2>/dev/null | head -n 1)
-            
-            if [ -n "$best_proj_png" ]; then
-                cp "$best_proj_png" "$ICON_DIR/${icon_name}-project.png"
-                echo "Successfully installed ${icon_name}-project.png"
-            else
-                echo "No PNG could be extracted from $proj_ico"
-            fi
+            install_multi_res_icons "$proj_tmp" "${icon_name}-project"
+            echo "Successfully installed multi-resolution icons for ${icon_name}-project"
         else
             echo "No ICO resource found for ID $project_res_id in $exe_path"
         fi
@@ -121,7 +176,8 @@ extract_icon() {
     # --- Dynamic Desktop Launcher Registration ---
     if [ -n "$desktop_name" ] && [ -f "$SCRIPT_DIR/../../desktop_stubs/$desktop_name" ]; then
         echo "Registering desktop launcher: $desktop_name..."
-        sed "s|\$HOME|$HOME|g" "$SCRIPT_DIR/../../desktop_stubs/$desktop_name" > "$HOME/.local/share/applications/$desktop_name"
+        local exe_filename=$(basename "$exe_path")
+        sed -e "s|\$HOME|$HOME|g" -e "s|^StartupWMClass=.*|StartupWMClass=$exe_filename|g" "$SCRIPT_DIR/../../desktop_stubs/$desktop_name" > "$HOME/.local/share/applications/$desktop_name"
         
         # Update desktop database for the new launcher
         if command -v distrobox-host-exec >/dev/null 2>&1; then

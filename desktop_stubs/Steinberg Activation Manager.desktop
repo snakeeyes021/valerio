@@ -5,6 +5,6 @@ Exec=$HOME/.local/bin/torquio-sam %u
 Icon=torquio-sam
 Type=Application
 Terminal=false
-StartupWMClass=steinbergactivationmanager.exe
+StartupWMClass=SteinbergActivationManager.exe
 Categories=AudioVideo;Audio;
 MimeType=x-scheme-handler/net-steinberg-activation-manager;x-scheme-handler/net-steinberg-sam;
