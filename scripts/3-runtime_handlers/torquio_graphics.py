@@ -114,10 +114,10 @@ def query_gnome():
             "height": h_px,
             "scale": scale,
             "physical_dpi": phys_dpi,
-            "ideal_xwayland_policy": "N/A (Scaling handled natively by X11)",
+            "ideal_xwayland_policy": "N/A (Native X11 Session)",
             "target_wine_dpi": 96,
             "target_xwayland_factor": 1,
-            "rec_formula": "Handled natively by X11"
+            "rec_formula": "Manual Configuration Required (X11 auto-scaling unsupported)"
         }
         
     is_integer_scale = (scale == round(scale))
@@ -387,10 +387,10 @@ def query_x11():
         "height": h_px,
         "scale": 1.0,
         "physical_dpi": phys_dpi,
-        "ideal_xwayland_policy": "N/A (Scaling handled natively by X11)",
+        "ideal_xwayland_policy": "N/A (Native X11 Session)",
         "target_wine_dpi": 96,
         "target_xwayland_factor": 1,
-        "rec_formula": "Handled natively by X11"
+        "rec_formula": "Manual Configuration Required (X11 auto-scaling unsupported)"
     }
 
 def main():

@@ -94,9 +94,9 @@ torquio
 
 Because Dorico runs via WINE (which currently operates on legacy X11 protocols via XWayland), high-resolution monitors can cause scaling headaches on modern Wayland desktop environments. 
 
-If you use anything that is 1440p or below and you don't use desktop environment fractional scaling, you should be in the clear and don't really need to worry about this. However, if you use anything that's 4K or above, have a high DPI screen that requires fractional scaling, or you use Dorico on a laptop that sometimes gets plugged into a dock/monitor with a different DPI or desktop scaling factor from your laptop's screen, you may want to read on.
+If you use anything that is 1440p or below and you don't use desktop environment fractional scaling, there's a good chance you're in the clear and don't really need to worry about this. However, if you use anything that's 4K or above, have a high DPI screen that requires fractional scaling, or you use Dorico on a laptop that sometimes gets plugged into a dock/monitor with a different DPI or desktop scaling factor from your laptop's screen, you may want to read on.
 
-Torquio's **Auto Graphics Mode** attempts to solve these various scenarios by managing the desktop's XWayland scaling protocol as well as the WINE prefix's DPI setting. Auto Graphics Mode is available on recent Wayland versions of **GNOME**, **KDE Plasma**, and **Cosmic** (where it handles DPI *and* coordinates compositor scaling policies). On **X11 sessions**, Auto Graphics Mode and the Match Hardware Physical DPI options are not necessary, so the option is not available (WINE natively and accurately queries and utilizes the X server's dimensions and DPI at launch).
+Torquio's **Auto Graphics Mode** attempts to solve these various scenarios by managing the desktop's XWayland scaling protocol as well as the WINE prefix's DPI setting. Auto Graphics Mode is available on recent Wayland versions of **GNOME**, **KDE Plasma**, and **Cosmic** (where it handles DPI *and* coordinates compositor scaling policies). Auto Graphics Mode and the Match Hardware Physical DPI options are exclusive to modern Wayland compositors and are not available on **X11 sessions**, as display scaling behavior varies across X11 desktop environments and would not be feasible to automatically manage. Luckily, proper scaling on X11 should largely only require manually changing the WINE prefix DPI, and very often the default 96 will be sufficient.
 
 If your use case *does* fall into one of the above categories but you're not on a supported desktop environment (and could benefit from some direction on how to manage things) or you just want to know what's going on under the hood, here's a useful graph:
 
@@ -108,14 +108,14 @@ graph TD
     DE{"What Desktop Session/Environment?"}:::normal
     KDEPath["Auto & Manual Modes Available"]:::auto
     GnomePath["Auto & Manual Modes Available"]:::auto
-    X11Path["Manual Mode Only\n(No auto overrides required)"]:::manual
+    X11Path["Manual Mode Only\n(Auto-scaling unsupported)"]:::manual
     OtherWayland["Manual Mode Only"]:::manual
     KDEAction["1. Set XWayland apps to scale themselves\n(Called 'Optimize for Games' on COSMIC; default on KDE)\n2. Set WINE DPI to match desktop scale factor (96 * Desktop Scale)"]:::auto
     GnomeAction["1. Enable Framebuffer Upscaling (set xwayland-scaling-factor to 1)\n2. Keep WINE DPI at standard default (96 DPI; compositor upscales the UI)"]:::auto
     GnomeLag{"Performance Lag?"}:::auto
     GnomePerf["Consider manually lowering system resolution to 1440p or 1080p before launching Dorico"]:::auto
     OtherAction["Depends on XWayland policy controls:\n- Prefer KDE/COSMIC method if available\n- If standard Framebuffer Upscale is the only option, follow the GNOME method"]:::manual
-    X11Action["WINE natively detects X11 host DPI.\nUse 'Set/change WINE Prefix DPI' tool for manual override if needed."]:::manual
+    X11Action["Proper scaling settings differ across X11 DEs.\nUse 'Set/change WINE Prefix DPI' tool to match your DE settings."]:::manual
 
     Start --> Fork
     Fork -- "No" --> LowRes
@@ -158,13 +158,16 @@ $$\text{Target WINE DPI} = 96 \times \text{Desktop Scale Factor}$$
 > **Match Hardware Physical DPI Option (Wayland Only):**
 > Alternatively, you can enable **Match Hardware Physical DPI** in the graphics configuration menu. If enabled, scaling calculations will anchor directly to your monitor's exact hardware physical subpixel density (queried from EDID data, e.g. `161 DPI`) instead of the standard `96 DPI` baseline. This can be useful if you prefer a slightly different UI scale in Dorico to compensate for the physical size of your screen.
 > 
-> *Note: On X11 sessions, WINE already natively and accurately queries the host display server's dimensions and DPI setting at startup, so automated DPI scaling overrides are bypassed completely.*
+> *Note: Match Hardware Physical DPI and Automated Graphics Management are Wayland-only features and are bypassed on X11 sessions.*
 
 ### Manual Configuration for Other Desktops
 
 If your environment is not supported by Torquio's Auto Graphics Mode, you can configure display scaling manually:
 *   **Other Wayland Desktops (e.g., Sway, Hyprland, Wayfire)**: Check if your compositor exposes XWayland scaling policies. If you can configure XWayland clients to scale themselves, enable this and set your WINE DPI to match your desktop's scale factor (96 * Scale). If standard compositor/framebuffer upscaling is the only option, follow the GNOME method (keep WINE DPI at 96 and turn on framebuffer upscaling).
-*   **X11 Desktops (e.g., XFCE, Cinnamon, MATE, GNOME/KDE/COSMIC on X11)**: Because apps render natively on X11 without XWayland translation layers, WINE natively detects the host display's DPI scaling. If you need a manual override, you can configure your WINE prefix DPI manually via `winecfg` or the "Set/change WINE Prefix DPI" one-time tool in the Torquio configuration menu.
+*   **X11 Desktops (e.g., XFCE, Cinnamon, MATE, GNOME/KDE/COSMIC on X11)**: The proper scaling settings will differ for the various X11 desktop environments. Please consult your own particular DE's scaling method and set the Wine Prefix DPI manually using option 2 ("Set/change WINE Prefix DPI") in the Torquio configuration menu if needed. As an example, on Mint, you would set the following DPI values depending on what desktop scaling you have enabled in your settings:
+    *   **Integer Scaling (e.g., 200%)**: Set DPI to `Scale × 96` (e.g., 192 DPI).
+    *   **Fractional Scaling with "Scale Down" enabled**: Set DPI to **192 DPI** (as Mint assumes a 200% base render and scales down from there).
+    *   **Fractional Scaling with "Scale Up" enabled**: Leave DPI on the default **96 DPI** (as Mint assumes a 100% base render and scales up from there).
 
 > [!CAUTION]
 > **XWayland Note:** As mentioned, Auto Graphics Mode manages a global desktop setting (your desktop environment's XWayland scaling policy). If you actively use other legacy X11/XWayland applications on your desktop alongside Dorico (excluding games, which typically prefer the same unscaled mode Dorico uses), consider sticking to **Manual Graphics Mode** instead. See the graphics configuration menu to determine whether your current XWayland scaling method differs from the Torquio-recommended setting.

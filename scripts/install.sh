@@ -266,10 +266,9 @@ if [ "$AUTO_ACCEPT" = false ]; then
     if [ "$XDG_SESSION_TYPE" = "x11" ]; then
         echo "X11 session detected."
         echo ""
-        echo "WINE natively detects and applies host display scaling settings under X11."
-        echo "Automated XWayland scaling management is a Wayland-only feature."
-        echo ""
-        echo -e "${green}No graphics configuration is required for your setup.${reset}"
+        echo "Automated scaling management is a Wayland-only feature."
+        echo "Proper scaling settings will differ for various X11 desktop environments."
+        echo "If needed, you can adjust your WINE Prefix DPI manually via Torquio."
         echo ""
         SET_MANAGE="false"
         SET_MATCH_PHYS="false"

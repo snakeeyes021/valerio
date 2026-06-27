@@ -361,23 +361,38 @@ local sys_policy="Unknown"
     echo ""
 
 echo -e "  ${blue}[Torquio Recommendations for this Monitor]${reset}"
-    if [ -n "$supported" ] || [ "$XDG_SESSION_TYPE" = "x11" ]; then
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        echo -e "  - Recommended Scaling Policy: ${yellow}N/A (Native X11 Session)${reset}"
+        echo -e "  - Recommended Wine DPI:        ${yellow}Manual Configuration Required${reset}"
+        echo ""
+        echo -e "  ${yellow}[X11 Scaling Notice]${reset}"
+        echo -e "  The proper scaling settings will differ for the various X11 desktop environments."
+        echo -e "  Please consult your own particular DE's scaling method and set the Wine Prefix"
+        echo -e "  DPI manually using option 2 if needed."
+        echo ""
+        echo -e "  As an example, on Mint, you would set the following DPI values depending on"
+        echo -e "  what desktop scaling you have enabled in your settings:"
+        echo -e "  - ${wine}Integer Scaling (e.g., 200%)${reset}: Set DPI to Scale × 96 (e.g., 192 DPI)."
+        echo -e "  - ${wine}Fractional Scaling with 'Scale Down' enabled${reset}: Set DPI to 192 DPI."
+        echo -e "  - ${wine}Fractional Scaling with 'Scale Up' enabled${reset}: Leave DPI on default 96 DPI."
+    elif [ -n "$supported" ]; then
         local rec_formula=$(echo "$graphics_json" | grep -o '"rec_formula": "[^"]*' | cut -d'"' -f4)
         echo -e "  - Recommended XWayland Policy: ${green}${rec_policy}${reset}"
-        echo -e "  - Recommended Wine DPI:        ${green}${target_dpi:-96} DPI${reset} (${rec_formula:-Handled natively by X11})"
+        echo -e "  - Recommended Wine DPI:        ${green}${target_dpi:-96} DPI${reset} (${rec_formula})"
     else
         echo -e "  - Recommended XWayland Policy: ${red}Unsupported DE (Manual management required)${reset}"
         echo -e "  - Recommended Wine DPI:        ${red}Unsupported DE (Manual management required)${reset}"
     fi
     echo ""
 
-    if [ "${cur_manage,,}" = "true" ] || [ "$cur_manage" = "1" ]; then
-        echo -e "  ${green}Torquio is automatically managing these settings.${reset}"
-    else
-        echo -e "  ${dark_gray}To let Torquio handle this automatically, switch to Automated Mode.${reset}"
+    if [ "$XDG_SESSION_TYPE" != "x11" ]; then
+        if [ "${cur_manage,,}" = "true" ] || [ "$cur_manage" = "1" ]; then
+            echo -e "  ${green}Torquio is automatically managing these settings.${reset}"
+        else
+            echo -e "  ${dark_gray}To let Torquio handle this automatically, switch to Automated Mode.${reset}"
+        fi
+        echo ""
     fi
-
-    echo ""
 
     if [ -n "$w_px" ] && [ -n "$h_px" ] && ( [ "$w_px" -ge 3840 ] || [ "$h_px" -ge 2160 ] ); then
         echo -e "  ${yellow}[!] Performance Warning: At 4K+ resolutions, we have noticed some performance${reset}"
@@ -443,7 +458,8 @@ configure_graphics() {
     if [ "$opt" = "$opt_manage" ]; then
         if [ "$XDG_SESSION_TYPE" = "x11" ]; then
             echo -e "${red}Error: Automated Graphics Management is a Wayland-Only feature.${reset}"
-            echo "Under X11, WINE natively detects and applies host display scaling settings."
+            echo "The proper scaling settings will differ across X11 desktop environments."
+            echo "Please consult your DE's scaling method and set WINE Prefix DPI manually using option 2."
             echo ""
             read -p "Press [Enter] to continue..." temp
             configure_graphics
@@ -942,7 +958,10 @@ show_status() {
     echo -e "  - Effective XWayland Scaling:  ${wine}${effective_scaling}${reset}"
     echo -e "  - Current Wine DPI:            ${wine}${current_wine_dpi} DPI${reset}"
 
-    if [ -n "$supported" ] || [ "$XDG_SESSION_TYPE" = "x11" ]; then
+    if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+        echo -e "  - Recommended Scaling Policy: ${wine}N/A (Native X11 Session)${reset}"
+        echo -e "  - Recommended Wine DPI:        ${wine}Manual Config Required${reset}"
+    elif [ -n "$supported" ]; then
         echo -e "  - Recommended XWayland Policy: ${green}${rec_policy}${reset}"
         echo -e "  - Recommended Wine DPI:        ${green}${target_dpi:-96} DPI${reset} (${rec_formula:-Handled natively by X11})"
     else
