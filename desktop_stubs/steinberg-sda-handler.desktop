@@ -4,6 +4,6 @@ Exec=$HOME/.local/bin/torquio-sda-handler %u
 Icon=torquio-sda
 Type=Application
 Terminal=false
-StartupWMClass=Steinberg Download Assistant.exe
+StartupWMClass=steinberg download assistant.exe
 Categories=AudioVideo;Audio;
 MimeType=x-scheme-handler/net-steinberg-sda;

@@ -176,8 +176,7 @@ extract_icon() {
     # --- Dynamic Desktop Launcher Registration ---
     if [ -n "$desktop_name" ] && [ -f "$SCRIPT_DIR/../../desktop_stubs/$desktop_name" ]; then
         echo "Registering desktop launcher: $desktop_name..."
-        local exe_filename=$(basename "$exe_path")
-        sed -e "s|\$HOME|$HOME|g" -e "s|^StartupWMClass=.*|StartupWMClass=$exe_filename|g" "$SCRIPT_DIR/../../desktop_stubs/$desktop_name" > "$HOME/.local/share/applications/$desktop_name"
+        sed "s|\$HOME|$HOME|g" "$SCRIPT_DIR/../../desktop_stubs/$desktop_name" > "$HOME/.local/share/applications/$desktop_name"
         
         # Update desktop database for the new launcher
         if command -v distrobox-host-exec >/dev/null 2>&1; then
