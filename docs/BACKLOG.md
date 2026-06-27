@@ -26,6 +26,7 @@ This section tracks high-level goals and ideas that have not yet been broken dow
 *   [ ] **Create Steam Deck controller layout:** Dorico via Torquio is Steam Deck compatible, but no controller layout exists for it, nor do any pre-existing generic templates suffice.
     *   [ ] **Run in fullscreen when gamescope is detected:** When running Dorico on Steam Deck (which uses gamescope), Dorico does not fill the screen. Inside the Dorico menu, switching to full screen fixes this, but it would be nice if this was automatic, if it's even possible, given that it's inside a Dorico menu and not, e.g., a WINE or Linux setting. 
 *   [ ] **Add log exporter to Torquio:** A simple log zipper command in the torquio menus would be helpful (if a user wants to zip up the logs and attach it to a bug/issue, including WINE issues)
+*   [ ] **Add an "update" button:** Add an "update Torquio" option to the menu. It would perform a git pull and then refresh launchers and so forth. That *should* be sufficient?
 
 ## Done
 *(Move completed epics and tasks here for historical record)*
