@@ -1,10 +1,8 @@
 #!/bin/bash
 set -e
 
-# Torquio State-Agnostic Desktop Integration Test Harness
-# This test harness is completely independent of whether a real or partial Torquio installation exists.
-# It creates isolated, uniquely-named test applications ("Torquio TEST Dorico", "Torquio TEST SDA")
-# so you can verify menu discovery, icon rendering, and MIME handoffs without clashing with existing files.
+# Torquio Desktop Integration Test Harness
+# Tests exact WM_CLASS window grouping and MIME handling on Mint, Ubuntu, Vanilla GNOME, KDE, and Cosmic.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -25,8 +23,10 @@ if [ "$1" == "--clean" ] || [ "$1" == "clean" ]; then
     echo -e "${yellow}Cleaning up all Torquio Test harness artifacts...${reset}"
     rm -f "$APPS_DIR/Torquio-Test-Dorico.desktop"
     rm -f "$APPS_DIR/Torquio-Test-SDA.desktop"
+    rm -f "$APPS_DIR/Steinberg Download Assistant.desktop"
     rm -f "$ICON_BASE/256x256/apps/torquio-test-dorico.png"
     rm -f "$ICON_BASE/256x256/apps/torquio-test-sda.png"
+    rm -f "$ICON_BASE/256x256/apps/torquio-sda.png"
     
     if command -v update-desktop-database >/dev/null 2>&1; then
         update-desktop-database "$APPS_DIR" >/dev/null 2>&1 || true
@@ -39,14 +39,14 @@ if [ "$1" == "--clean" ] || [ "$1" == "clean" ]; then
 fi
 
 echo -e "${blue}====================================================${reset}"
-echo -e "${blue} Torquio State-Agnostic Desktop Test Harness        ${reset}"
+echo -e "${blue} Torquio WM_CLASS & Dock Grouping Test Harness      ${reset}"
 echo -e "${blue}====================================================${reset}"
 echo "Running on Host OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2 2>/dev/null || echo "Linux")"
 echo "Desktop Session:   ${XDG_CURRENT_DESKTOP:-$DESKTOP_SESSION} (${XDG_SESSION_TYPE:-x11})"
 echo ""
 
-# Step 1: Install Unique Test Icons
-echo -e "${yellow}[1/4] Installing unique test icons into hicolor theme...${reset}"
+# Step 1: Install Icons
+echo -e "${yellow}[1/4] Installing test icons into hicolor theme...${reset}"
 mkdir -p "$ICON_BASE/256x256/apps"
 
 if [ -f "$FIXTURES_DIR/torquio-dorico.png" ]; then
@@ -55,6 +55,7 @@ if [ -f "$FIXTURES_DIR/torquio-dorico.png" ]; then
 fi
 if [ -f "$FIXTURES_DIR/torquio-sda.png" ]; then
     cp "$FIXTURES_DIR/torquio-sda.png" "$ICON_BASE/256x256/apps/torquio-test-sda.png"
+    cp "$FIXTURES_DIR/torquio-sda.png" "$ICON_BASE/256x256/apps/torquio-sda.png"
     echo -e "  ${green}✓ Installed torquio-test-sda.png${reset}"
 fi
 
@@ -62,9 +63,9 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1; then
     gtk-update-icon-cache -f -t "$ICON_BASE" >/dev/null 2>&1 || true
 fi
 
-# Step 2: Generate Unique Test Desktop Entries & MIME Handlers
+# Step 2: Generate Launchers with Exact WM_CLASS Mapping
 echo ""
-echo -e "${yellow}[2/4] Generating unique test launchers in ~/.local/share/applications/...${reset}"
+echo -e "${yellow}[2/4] Generating launchers in ~/.local/share/applications/...${reset}"
 mkdir -p "$APPS_DIR"
 
 # 1. Torquio TEST Dorico
@@ -72,31 +73,31 @@ cat << EOF > "$APPS_DIR/Torquio-Test-Dorico.desktop"
 [Desktop Entry]
 Name=Torquio TEST Dorico
 Comment=Test Launcher for Torquio Desktop Integration
-Exec=$WRAPPER_SCRIPT %F
+Exec=$WRAPPER_SCRIPT "%F" "dorico6.exe"
 Icon=torquio-test-dorico
 Type=Application
 Terminal=false
-StartupWMClass=torquiotestdorico.exe
+StartupWMClass=dorico6.exe
 Categories=AudioVideo;Audio;
 EOF
 chmod +x "$APPS_DIR/Torquio-Test-Dorico.desktop"
 echo -e "  ${green}✓ Created Torquio-Test-Dorico.desktop${reset}"
 
-# 2. Torquio TEST SDA
-cat << EOF > "$APPS_DIR/Torquio-Test-SDA.desktop"
+# 2. Steinberg Download Assistant (Standardized FreeDesktop Naming Test)
+cat << EOF > "$APPS_DIR/Steinberg Download Assistant.desktop"
 [Desktop Entry]
 Name=Torquio TEST SDA
-Comment=Test Launcher for Torquio Browser Token Handoff
-Exec=$WRAPPER_SCRIPT %u
+Comment=Test Launcher for Steinberg Download Assistant Window Grouping
+Exec=$WRAPPER_SCRIPT "%u" "steinberg download assistant.exe"
 Icon=torquio-test-sda
 Type=Application
 Terminal=false
-StartupWMClass=torquiotestsda.exe
+StartupWMClass=steinberg download assistant.exe
 Categories=AudioVideo;Audio;
 MimeType=x-scheme-handler/net-torquio-test-sda;
 EOF
-chmod +x "$APPS_DIR/Torquio-Test-SDA.desktop"
-echo -e "  ${green}✓ Created Torquio-Test-SDA.desktop${reset}"
+chmod +x "$APPS_DIR/Steinberg Download Assistant.desktop"
+echo -e "  ${green}✓ Created Steinberg Download Assistant.desktop${reset}"
 
 # Refresh Desktop Database
 if command -v update-desktop-database >/dev/null 2>&1; then
@@ -106,8 +107,8 @@ touch "$APPS_DIR" >/dev/null 2>&1 || true
 
 # Register Custom Test Protocol Handoff
 if command -v xdg-mime >/dev/null 2>&1; then
-    xdg-mime default Torquio-Test-SDA.desktop x-scheme-handler/net-torquio-test-sda 2>/dev/null || true
-    echo -e "  ${green}✓ Registered x-scheme-handler/net-torquio-test-sda -> Torquio-Test-SDA.desktop${reset}"
+    xdg-mime default "Steinberg Download Assistant.desktop" x-scheme-handler/net-torquio-test-sda 2>/dev/null || true
+    echo -e "  ${green}✓ Registered x-scheme-handler/net-torquio-test-sda -> Steinberg Download Assistant.desktop${reset}"
 fi
 
 # Step 3: Diagnostics & Syntax Validation
@@ -116,7 +117,7 @@ echo -e "${yellow}[3/4] Running Diagnostics...${reset}"
 if command -v desktop-file-validate >/dev/null 2>&1; then
     echo -n "Checking .desktop syntax validation: "
     ERRS=0
-    for dt in "$APPS_DIR/Torquio-Test-Dorico.desktop" "$APPS_DIR/Torquio-Test-SDA.desktop"; do
+    for dt in "$APPS_DIR/Torquio-Test-Dorico.desktop" "$APPS_DIR/Steinberg Download Assistant.desktop"; do
         if ! desktop-file-validate "$dt" >/dev/null 2>&1; then
             ERRS=$((ERRS + 1))
             echo -e "\n  ${red}Syntax error in $(basename "$dt")${reset}"
@@ -127,26 +128,25 @@ fi
 
 MIME_STATUS=$(xdg-mime query default x-scheme-handler/net-torquio-test-sda 2>/dev/null || echo "")
 echo -n "Checking Test MIME association: "
-if [ "$MIME_STATUS" == "Torquio-Test-SDA.desktop" ]; then
-    echo -e "${green}PASS (Associated with Torquio-Test-SDA.desktop)${reset}"
+if [ "$MIME_STATUS" == "Steinberg Download Assistant.desktop" ]; then
+    echo -e "${green}PASS (Associated with Steinberg Download Assistant.desktop)${reset}"
 else
     echo -e "${red}FAIL (Current: '$MIME_STATUS')${reset}"
 fi
 
 # Step 4: Testing Instructions
 echo ""
-echo -e "${yellow}[4/4] How to verify on your test machine:${reset}"
+echo -e "${yellow}[4/4] How to verify panel/dock grouping on your test machine:${reset}"
 echo -e "${blue}----------------------------------------------------${reset}"
-echo -e "1. SEARCH APP MENU:"
-echo -e "   - Open your Start Menu (Mint) or App Grid (Ubuntu) and search for:"
-echo -e "     ${green}\"Torquio TEST\"${reset}"
-echo -e "   - Verify: Do both test apps appear cleanly with their icons?"
+echo -e "1. LAUNCH TEST APPS FROM MENU:"
+echo -e "   - Search your menu for ${green}\"Torquio TEST\"${reset} and click to launch."
+echo -e "   - Verify: Does a GUI test window open?"
+echo -e "   - Verify: Check your panel (Mint) / side dock (Ubuntu). Does the running"
+echo -e "     window group cleanly under the launcher icon with friendly name?"
 echo ""
 echo -e "2. TEST BROWSER HANDOFF:"
-echo -e "   - Run this command in terminal to test the URL handoff:"
-echo -e "     ${green}xdg-open 'net-torquio-test-sda://token=AUTH_SUCCESS_123'${reset}"
-echo -e "   - Verify: Does a GUI dialog or terminal box appear confirming receipt?"
-echo -e "   - Log location: ${yellow}~/.local/share/torquio/logs/test_handoff.log${reset}"
+echo -e "   - Run: ${green}xdg-open 'net-torquio-test-sda://token=AUTH_SUCCESS_123'${reset}"
+echo -e "   - Verify: Does the test window open and show the token?"
 echo ""
 echo -e "3. CLEANUP WHEN DONE:"
 echo -e "   - Run: ${yellow}./scripts/dev/test_desktop_integration.sh --clean${reset}"

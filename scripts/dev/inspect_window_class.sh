@@ -31,12 +31,14 @@ if command -v xprop >/dev/null 2>&1; then
         echo "  $WM_OUTPUT"
         echo ""
         
-        # Parse out class strings
-        CLASSES=$(echo "$WM_OUTPUT" | grep -o '"[^"]*"' | tr -d '"')
         echo -e "${blue}Recommended StartupWMClass entries for your .desktop file:${reset}"
-        for c in $CLASSES; do
-            echo -e "  ${green}StartupWMClass=$c${reset}"
-        done
+        python3 -c '
+import sys, re
+raw = sys.argv[1]
+matches = re.findall(r"\"([^\"]+)\"", raw)
+for m in set(matches):
+    print(f"  StartupWMClass={m}")
+' "$WM_OUTPUT"
     else
         echo -e "${red}Could not capture window class or cancelled.${reset}"
     fi
