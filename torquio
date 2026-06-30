@@ -768,6 +768,7 @@ refresh_launchers() {
     
     # 1. Extract icons and refresh desktop files
     distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$SCRIPT_DIR\" && ./scripts/2-install/extract_icons.sh"
+    update-desktop-database "$HOME/.local/share/applications/" >/dev/null 2>&1 || true
     
     # 2. Refresh Wine prefix registry settings and debugger wrapper
     echo "Refreshing Wine prefix registry settings & debugger..."
@@ -1607,6 +1608,7 @@ if [ $# -gt 0 ]; then
             ;;
         -f|--fix-icons)
             distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$SCRIPT_DIR\" && ./scripts/2-install/extract_icons.sh"
+            update-desktop-database "$HOME/.local/share/applications/" >/dev/null 2>&1 || true
             ;;
         -g|--graphics)
             configure_graphics

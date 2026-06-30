@@ -275,6 +275,7 @@ if [ -z "$URL" ]; then
                     if [[ "$artifactId" =~ Dorico.*Application_Installer ]] && [ "$success" = "true" ]; then
                         echo "Dorico installation success detected! Extracting icons..."
                         distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$TORQUIO_REPO_DIR\" && ./scripts/2-install/extract_icons.sh"
+                        update-desktop-database "$HOME/.local/share/applications/" >/dev/null 2>&1 || true
                         mv "$DORICO_STATUS_FILE" "${DORICO_STATUS_FILE}.processed" 2>/dev/null || rm -f "$DORICO_STATUS_FILE"
                     fi
                 fi

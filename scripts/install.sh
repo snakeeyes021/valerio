@@ -569,6 +569,8 @@ if [ "$INTEGRATE" = true ]; then
     
     echo "Extracting Desktop Icons..."
     distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$SCRIPT_DIR\" && ./scripts/2-install/extract_icons.sh --initial"
+    echo "Updating host desktop database..."
+    update-desktop-database "$HOME/.local/share/applications/" >/dev/null 2>&1 || true
 fi
 
 # Apply Mapped Folders if configured
