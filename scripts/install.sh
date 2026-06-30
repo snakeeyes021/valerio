@@ -541,8 +541,6 @@ if [ "$INSTALL_SOFTWARE" = true ]; then
         echo "Installing NotePerformer..."
         distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/install_noteperformer.sh"
     fi
-    echo "Extracting Desktop Icons..."
-    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$WORKSPACE_DIR\" && ./scripts/2-install/extract_icons.sh --initial"
 fi
 
 if [ "$INTEGRATE" = true ]; then
@@ -568,6 +566,9 @@ if [ "$INTEGRATE" = true ]; then
     mkdir -p "$HOME/.local/share/mime/packages"
     cp "$SCRIPT_DIR/desktop_stubs/application-x-dorico.xml" "$HOME/.local/share/mime/packages/"
     update-mime-database "$HOME/.local/share/mime/" || true
+    
+    echo "Extracting Desktop Icons..."
+    distrobox enter "$TORQUIO_CONTAINER_NAME" -- bash -c "cd \"$SCRIPT_DIR\" && ./scripts/2-install/extract_icons.sh --initial"
 fi
 
 # Apply Mapped Folders if configured
